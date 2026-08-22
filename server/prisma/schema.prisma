@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -14,17 +11,96 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enums
+
+enum TicketType {
+  EARLY_BIRD
+  GENERAL_ADMISSION
+  VIP
+  VIP_MEET_GREET
+}
+
+enum Genre {
+  ROCK
+  POP
+  EDM
+  HIP_HOP
+  RNB
+  JAZZ
+  COUNTRY
+  CLASSICAL
+}
+
+// Ticket (embedded on Event — ticket rules are per-event)
+
+type Ticket {
+  type        TicketType
+  price       Float
+  quantity    Int
+  description String?
+}
+
+// User
+
 model User {
-  id    String @id @default(uuid()) @map("_id") 
-    name  String
+  id    String @id @default(uuid()) @map("_id")
+  name  String
   email String @unique
 }
 
-model Ticket {
-  id          String   @id @default(uuid()) @map("_id") 
-  title       String
-  description String
-  status      String
-  userId      String   
+// Venue
+
+model Venue {
+  id         String   @id @default(uuid()) @map("_id")
+  name       String
+  description String?
+  capacity   Int
+  location   String
+  images     String[]
+  amenities  String[]
+  policies   String[]
+  seatingChartImage String?
+
+  // Events that happened / will happen at this venue
+  events Event[] @relation("VenueEvents")
 }
 
+// Artist
+
+model Artist {
+  id     String     @id @default(uuid()) @map("_id")
+  name   String
+  genres String[]
+  images String[]
+
+  // Events the artist performed in
+  performances EventArtist[]
+}
+
+// Bridge Document for Event-Artist many-to-many relationship
+
+model EventArtist {
+  id       String   @id @default(uuid()) @map("_id")
+  eventId  String
+  artistId String
+  event    Event    @relation(fields: [eventId], references: [id])
+  artist   Artist   @relation(fields: [artistId], references: [id])
+
+  @@unique([eventId, artistId])
+}
+
+// Event
+
+model Event {
+  id        String       @id @default(uuid()) @map("_id")
+  title     String
+  date      DateTime
+  time      String
+  genres    Genre[]
+  artists   EventArtist[]
+  venueId   String
+  venue     Venue        @relation("VenueEvents", fields: [venueId], references: [id])
+  tickets   Ticket[]
+
+  @@unique([venueId, date, time])
+}

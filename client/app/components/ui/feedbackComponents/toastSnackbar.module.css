@@ -1,0 +1,55 @@
+.toastSnackbar {
+  display: inline-flex;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 24rem;
+  min-width: 0;
+  min-height: 45.33px;
+  padding: var(--space-3) var(--space-4);
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  font-family: "Inter", var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 20px;
+  border: 0.67px solid currentColor;
+  border-radius: var(--radius-xl);
+  overflow-wrap: anywhere;
+}
+
+.icon {
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.message {
+  min-width: 0;
+}
+
+.success {
+  color: var(--color-success);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.error {
+  color: var(--color-error);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.warning {
+  color: var(--color-warning);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.info {
+  color: var(--color-purple);
+  background: rgba(139, 92, 246, 0.1);
+}
+
+@media (max-width: 360px) {
+  .toastSnackbar {
+    padding-inline: var(--space-3);
+    gap: var(--space-2);
+  }
+}

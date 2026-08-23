@@ -1,0 +1,61 @@
+.navigation {
+  display: inline-flex;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 384px;
+  height: 73px;
+  overflow: hidden;
+  flex-direction: column;
+  align-self: stretch;
+  align-items: flex-start;
+  justify-content: flex-start;
+  border-radius: var(--radius-xl);
+  outline: 0.67px solid var(--color-border);
+  outline-offset: -0.67px;
+}
+
+.navigationBar {
+  display: inline-flex;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: flex-start;
+  background: var(--color-background);
+  border-top: 0.67px solid rgba(255, 255, 255, 0.06);
+}
+
+.navigationItem {
+  display: inline-flex;
+  min-width: 0;
+  flex: 1 1 0;
+  padding: var(--space-3) 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-1);
+  color: var(--color-dim);
+  font-family: "Inter", var(--font-sans);
+  font-weight: var(--font-weight-body);
+  text-decoration: none;
+}
+
+.icon {
+  display: block;
+  color: inherit;
+  font-size: 20px;
+  font-weight: inherit;
+  line-height: 28px;
+  overflow-wrap: break-word;
+}
+
+.label {
+  display: block;
+  color: inherit;
+  font-size: 10px;
+  font-weight: inherit;
+  line-height: 15px;
+  overflow-wrap: break-word;
+}
+
+.active {
+  color: var(--color-purple);
+}

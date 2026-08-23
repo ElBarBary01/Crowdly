@@ -2,17 +2,23 @@
 
 import "./styles.css";
 import { useState } from "react";
+import ToggleSwitch from "../components/ui/ToggleSwitch/ToggleSwitch";
 
 export default function TestPage() {
-  const [clicks, setClicks] = useState(0);
+  const [isToggleOn, setIsToggleOn] = useState(false);
+
+  const handleToggleChange = (isOn: boolean) => {
+    setIsToggleOn(isOn);
+  };
 
   return (
     <main className="container">
-      <h1>Click Counter</h1>
-      <p>Clicks: {clicks}</p>
-      <button type="button" onClick={() => setClicks((count) => count + 1)}>
-        Click me
-      </button>
+      <ToggleSwitch
+        label="Notifications"
+        isOn={isToggleOn}
+        onChange={handleToggleChange}
+      />
+      <p>Toggle: {isToggleOn ? "ON" : "OFF"}</p>
     </main>
   );
 }

@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express, { Request, Response, Application } from "express";
 import userRoutes from "./routes/user";
 import venueRoutes from "./routes/venue";

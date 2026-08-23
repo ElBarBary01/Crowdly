@@ -1,5 +1,4 @@
 import "./RadioButton.css";
-import { useState } from "react";
 
 type RadioOption = {
   value: string;

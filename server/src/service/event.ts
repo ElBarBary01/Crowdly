@@ -1,5 +1,6 @@
 import prisma from "../lib/prisma";
 import { CreateEventDto, UpdateEventDto } from "../types/event";
+import { Genre as GenreEnum, TicketType as TicketTypeEnum } from "../../generated/prisma/enums";
 
 export async function createEvent(dto: CreateEventDto) {
   const { title, date, time, genres, venueId, artistsIds, tickets } = dto;
@@ -8,24 +9,22 @@ export async function createEvent(dto: CreateEventDto) {
       title,
       date: new Date(date),
       time,
-      genres,
+      genres: genres.map((g) => g.toUpperCase() as unknown as GenreEnum),
       venue: { connect: { id: venueId } },
-      eventArtists: {
+      artists: {
         create: artistsIds.map((artistId) => ({
           artist: { connect: { id: artistId } },
         })),
       },
-      tickets: {
-        create: tickets.map((t) => ({
-          type: t.type,
-          price: t.price,
-          quantity: t.quantity,
-        })),
-      },
+      tickets: tickets.map((t) => ({
+        type: t.type.toUpperCase() as unknown as TicketTypeEnum,
+        price: t.price,
+        quantity: t.quantity,
+      })),
     },
     include: {
       venue: true,
-      eventArtists: { include: { artist: true } },
+      artists: { include: { artist: true } },
     },
   });
 }
@@ -34,7 +33,7 @@ export async function getEvents() {
   return prisma.event.findMany({
     include: {
       venue: true,
-      eventArtists: { include: { artist: true } },
+      artists: { include: { artist: true } },
     },
   });
 }
@@ -44,7 +43,7 @@ export async function getEventById(id: string) {
     where: { id },
     include: {
       venue: true,
-      eventArtists: { include: { artist: true } },
+      artists: { include: { artist: true } },
     },
   });
 }
@@ -59,7 +58,7 @@ export async function updateEvent(id: string, dto: UpdateEventDto) {
   if (rest.title !== undefined) data.title = rest.title;
   if (rest.date !== undefined) data.date = new Date(rest.date);
   if (rest.time !== undefined) data.time = rest.time;
-  if (rest.genres !== undefined) data.genres = rest.genres;
+  if (rest.genres !== undefined) data.genres = rest.genres.map((g) => g.toUpperCase() as unknown as GenreEnum);
 
   // Handle venue relation update
   if (venueId !== undefined) {
@@ -68,7 +67,7 @@ export async function updateEvent(id: string, dto: UpdateEventDto) {
 
   // Handle artists relation update
   if (artistsIds !== undefined) {
-    data.eventArtists = {
+    data.artists = {
       deleteMany: {},
       create: artistsIds.map((artistId) => ({
         artist: { connect: { id: artistId } },
@@ -76,16 +75,13 @@ export async function updateEvent(id: string, dto: UpdateEventDto) {
     };
   }
 
-  // Handle tickets relation update
+  // Handle tickets embedded update
   if (dto.tickets !== undefined) {
-    data.tickets = {
-      deleteMany: {},
-      create: dto.tickets.map((t) => ({
-        type: t.type,
-        price: t.price,
-        quantity: t.quantity,
-      })),
-    };
+    data.tickets = dto.tickets.map((t) => ({
+      type: t.type.toUpperCase() as unknown as TicketTypeEnum,
+      price: t.price,
+      quantity: t.quantity,
+    }));
   }
 
   return prisma.event.update({
@@ -93,7 +89,7 @@ export async function updateEvent(id: string, dto: UpdateEventDto) {
     data,
     include: {
       venue: true,
-      eventArtists: { include: { artist: true } },
+      artists: { include: { artist: true } },
     },
   });
 }

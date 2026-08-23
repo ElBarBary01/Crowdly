@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -13,18 +10,155 @@ datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
+////////////////////////////////////////////////////////////////////////////////////
 
-model User {
-  id    String @id @default(uuid()) @map("_id") 
-    name  String
-  email String @unique
+// Enums
+
+enum TicketType {
+  EARLY_BIRD
+  GENERAL_ADMISSION
+  VIP
+  VIP_MEET_GREET
 }
 
-model Ticket {
-  id          String   @id @default(uuid()) @map("_id") 
+enum Genre {
+  ROCK
+  POP
+  EDM
+  HIP_HOP
+  RNB
+  JAZZ
+  COUNTRY
+  CLASSICAL
+}
+
+enum OrderStatus {
+  TICKET_SELECTION
+  ACCOUNT_INFO
+  PAYMENT
+  CONFIRMATION
+}
+////////////////////////////////////////////////////////////////////////////////////
+
+
+// Types
+
+// Ticket (embedded on Event — ticket rules are per-event)
+type Ticket {
+  type        TicketType
+  price       Float
+  quantity    Int
+  description String?
+}
+
+// OrderTicket (per-ticket-line item inside an order)
+type OrderTicket {
+  type     TicketType
+  price    Float
+  quantity Int
+}
+
+// Embedded event snapshot inside an order
+type OrderEvent {
+  id          String
   title       String
-  description String
-  status      String
-  userId      String   
+  date        DateTime
+  time        String
+  venueId     String
+  venueName   String
+}
+////////////////////////////////////////////////////////////////////////////////////
+
+// Models
+
+// User
+model User {
+  id        String   @id @default(uuid()) @map("_id")
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+  address   String?
+  profileImage String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Orders placed by this user
+  orders Order[]
 }
 
+// Venue
+model Venue {
+  id          String   @id @default(uuid()) @map("_id")
+  name        String
+  description String?
+  capacity    Int
+  location    String
+  images      String[]
+  amenities   String[]
+  policies    String[]
+  seatingChartImage String?
+
+  // Events that happened / will happen at this venue
+  events Event[] @relation("VenueEvents")
+}
+
+// Artist
+model Artist {
+  id     String     @id @default(uuid()) @map("_id")
+  name   String
+  genres String[]
+  images String[]
+
+  // Events the artist performed in
+  performances EventArtist[]
+}
+
+// Bridge Document for Event-Artist many-to-many relationship
+model EventArtist {
+  id       String   @id @default(uuid()) @map("_id")
+  eventId  String
+  artistId String
+  event    Event    @relation(fields: [eventId], references: [id])
+  artist   Artist   @relation(fields: [artistId], references: [id])
+
+  @@unique([eventId, artistId])
+}
+
+// Event
+model Event {
+  id        String       @id @default(uuid()) @map("_id")
+  title     String
+  date      DateTime
+  time      String
+  genres    Genre[]
+  artists   EventArtist[]
+  venueId   String
+  venue     Venue        @relation("VenueEvents", fields: [venueId], references: [id])
+  tickets   Ticket[]
+
+  @@unique([venueId, date, time])
+}
+
+
+// Order
+model Order {
+  id          String       @id @default(uuid()) @map("_id")
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  status      OrderStatus  @default(TICKET_SELECTION)
+  serviceFee  Float          @default(0)
+
+  // Embedded event data snapshot at time of order
+  events      OrderEvent[]
+
+  // Embedded ticket line items for this order
+  tickets     OrderTicket[]
+
+  // Computed total
+  totalPrice  Float
+
+  @@map("orders")
+}

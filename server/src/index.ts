@@ -1,14 +1,23 @@
 import express, { Request, Response, Application } from "express";
 import userRoutes from "./routes/user";
+import venueRoutes from "./routes/venue";
+import artistRoutes from "./routes/artist";
+import eventRoutes from "./routes/event";
+import orderRoutes from "./routes/order";
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
+// Routes
 app.use("/user", userRoutes);
+app.use("/venue", venueRoutes);
+app.use("/artist", artistRoutes);
+app.use("/event", eventRoutes);
+app.use("/order", orderRoutes);
 
-// Type-safe GET route
+// Health check
 app.get("/", (req: Request, res: Response) => {
   res.json({ message: "Hello from typed Express!" });
 });

@@ -10,6 +10,7 @@ datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
+////////////////////////////////////////////////////////////////////////////////////
 
 // Enums
 
@@ -31,8 +32,18 @@ enum Genre {
   CLASSICAL
 }
 
-// Ticket (embedded on Event — ticket rules are per-event)
+enum OrderStatus {
+  TICKET_SELECTION
+  ACCOUNT_INFO
+  PAYMENT
+  CONFIRMATION
+}
+////////////////////////////////////////////////////////////////////////////////////
 
+
+// Types
+
+// Ticket (embedded on Event — ticket rules are per-event)
 type Ticket {
   type        TicketType
   price       Float
@@ -40,25 +51,51 @@ type Ticket {
   description String?
 }
 
-// User
+// OrderTicket (per-ticket-line item inside an order)
+type OrderTicket {
+  type     TicketType
+  price    Float
+  quantity Int
+}
 
+// Embedded event snapshot inside an order
+type OrderEvent {
+  id          String
+  title       String
+  date        DateTime
+  time        String
+  venueId     String
+  venueName   String
+}
+////////////////////////////////////////////////////////////////////////////////////
+
+// Models
+
+// User
 model User {
-  id    String @id @default(uuid()) @map("_id")
-  name  String
-  email String @unique
+  id        String   @id @default(uuid()) @map("_id")
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Orders placed by this user
+  orders Order[]
 }
 
 // Venue
-
 model Venue {
-  id         String   @id @default(uuid()) @map("_id")
-  name       String
+  id          String   @id @default(uuid()) @map("_id")
+  name        String
   description String?
-  capacity   Int
-  location   String
-  images     String[]
-  amenities  String[]
-  policies   String[]
+  capacity    Int
+  location    String
+  images      String[]
+  amenities   String[]
+  policies    String[]
   seatingChartImage String?
 
   // Events that happened / will happen at this venue
@@ -66,7 +103,6 @@ model Venue {
 }
 
 // Artist
-
 model Artist {
   id     String     @id @default(uuid()) @map("_id")
   name   String
@@ -78,7 +114,6 @@ model Artist {
 }
 
 // Bridge Document for Event-Artist many-to-many relationship
-
 model EventArtist {
   id       String   @id @default(uuid()) @map("_id")
   eventId  String
@@ -90,7 +125,6 @@ model EventArtist {
 }
 
 // Event
-
 model Event {
   id        String       @id @default(uuid()) @map("_id")
   title     String
@@ -103,4 +137,27 @@ model Event {
   tickets   Ticket[]
 
   @@unique([venueId, date, time])
+}
+
+
+// Order
+model Order {
+  id          String       @id @default(uuid()) @map("_id")
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  status      OrderStatus  @default(TICKET_SELECTION)
+  serviceFee  Float          @default(0)
+
+  // Embedded event data snapshot at time of order
+  events      OrderEvent[]
+
+  // Embedded ticket line items for this order
+  tickets     OrderTicket[]
+
+  // Computed total
+  totalPrice  Float
+
+  @@map("orders")
 }

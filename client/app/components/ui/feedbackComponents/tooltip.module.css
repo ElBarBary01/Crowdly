@@ -1,0 +1,100 @@
+.tooltip {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+}
+
+.tooltip:focus-visible {
+  outline: 2px solid var(--color-purple-light);
+  outline-offset: 2px;
+}
+
+.content {
+  position: absolute;
+  z-index: 100;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - var(--space-8)));
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-muted);
+  font-family: "Inter", var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-body);
+  line-height: 20px;
+  text-align: center;
+  background: var(--color-surface);
+  border: 0.67px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  overflow-wrap: anywhere;
+  transition:
+    opacity var(--transition-fast),
+    visibility var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.top {
+  bottom: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translate(-50%, var(--space-1));
+}
+
+.bottom {
+  top: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translate(-50%, calc(-1 * var(--space-1)));
+}
+
+.right {
+  top: 50%;
+  left: calc(100% + var(--space-2));
+  transform: translate(calc(-1 * var(--space-1)), -50%);
+}
+
+.tooltip:hover .content,
+.tooltip:focus .content,
+.tooltip:focus-within .content {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tooltip:hover .top,
+.tooltip:focus .top,
+.tooltip:focus-within .top,
+.tooltip:hover .bottom,
+.tooltip:focus .bottom,
+.tooltip:focus-within .bottom {
+  transform: translate(-50%, 0);
+}
+
+.tooltip:hover .right,
+.tooltip:focus .right,
+.tooltip:focus-within .right {
+  transform: translate(0, -50%);
+}
+
+@media (max-width: 480px) {
+  .right {
+    top: calc(100% + var(--space-2));
+    left: 50%;
+    transform: translate(-50%, calc(-1 * var(--space-1)));
+  }
+
+  .tooltip:hover .right,
+  .tooltip:focus .right,
+  .tooltip:focus-within .right {
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    transition: none;
+  }
+}

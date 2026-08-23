@@ -4,6 +4,7 @@ export type User = {
   email: string;
   phone?: string;
   address?: string;
+  profileImage?: string;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -12,6 +13,7 @@ export type CreateUserDto = {
   name: string;
   email: string;
   password: string;
+  profileImage?: string;
   phone?: string;
   address?: string;
 };
@@ -20,6 +22,7 @@ export type UpdateUserDto = {
   name?: string;
   email?: string;
   password?: string;
+  profileImage?: string;
   phone?: string;
   address?: string;
 };

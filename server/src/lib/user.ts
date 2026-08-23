@@ -2,9 +2,9 @@ import prisma from "../lib/prisma";
 import { CreateUserDto, UpdateUserDto } from "../types/user";
 
 export async function createUser(dto: CreateUserDto) {
-  const { name, email, password, phone, address } = dto;
+  const { name, email, password, profileImage, phone, address } = dto;
   return prisma.user.create({
-    data: { name, email, password, phone, address },
+    data: { name, email, password, profileImage, phone, address },
   });
 }
 

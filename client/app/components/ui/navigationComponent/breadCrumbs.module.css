@@ -5,6 +5,8 @@
   max-width: 891.33px;
   height: 36px;
   padding-top: 20px;
+  overflow-x: auto;
+  overflow-y: hidden;
   align-items: center;
   justify-content: flex-start;
   gap: var(--space-2);
@@ -13,10 +15,18 @@
   font-size: 12px;
   font-weight: var(--font-weight-body);
   line-height: 16px;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.breadcrumbs::-webkit-scrollbar {
+  display: none;
 }
 
 .group {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: var(--space-2);
 }

@@ -1,7 +1,9 @@
 .sidebar {
   display: inline-flex;
   box-sizing: border-box;
-  width: 192px;
+  width: 100%;
+  max-width: 192px;
+  min-width: 0;
   height: 217px;
   overflow: hidden;
   flex-direction: column;
@@ -48,6 +50,7 @@
 .identity {
   display: inline-flex;
   width: 60.98px;
+  min-width: 0;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
@@ -115,4 +118,11 @@
 .active {
   color: var(--color-purple-light);
   background: rgba(139, 92, 246, 0.12);
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    max-width: 100%;
+    height: auto;
+  }
 }

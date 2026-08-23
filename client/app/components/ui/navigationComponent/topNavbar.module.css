@@ -11,6 +11,10 @@
     color-mix(in srgb, var(--color-text) 6%, transparent);
 }
 
+.mobileNavigation {
+  display: none;
+}
+
 .brand,
 .navigation,
 .account {
@@ -115,19 +119,12 @@
   }
 }
 
-@media (max-width: 720px) {
-  .navigation {
-    display: none;
-  }
-}
-
-@media (max-width: 420px) {
+@media (max-width: 640px) {
   .topNavbar {
-    padding-inline: var(--space-3);
+    display: none;
   }
 
-  .wordmark,
-  .login {
-    display: none;
+  .mobileNavigation {
+    display: block;
   }
 }

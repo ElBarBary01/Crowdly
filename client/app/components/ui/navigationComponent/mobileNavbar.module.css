@@ -5,22 +5,14 @@
   max-width: 384px;
   height: 73px;
   overflow: hidden;
-  flex-direction: column;
   align-self: stretch;
-  align-items: flex-start;
-  justify-content: flex-start;
-  border-radius: var(--radius-xl);
-  outline: 0.67px solid var(--color-border);
-  outline-offset: -0.67px;
-}
-
-.navigationBar {
-  display: inline-flex;
-  width: 100%;
   align-items: flex-start;
   justify-content: flex-start;
   background: var(--color-background);
   border-top: 0.67px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-xl);
+  outline: 0.67px solid var(--color-border);
+  outline-offset: -0.67px;
 }
 
 .navigationItem {
@@ -58,4 +50,37 @@
 
 .active {
   color: var(--color-purple);
+}
+
+@media (max-width: 640px) {
+  :global(body):has(.navigation) {
+    padding-bottom: calc(73px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .navigation {
+    position: fixed;
+    z-index: 1000;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    height: calc(73px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+}
+
+@media (max-width: 320px) {
+  .navigationItem {
+    gap: 2px;
+  }
+
+  .icon {
+    font-size: 18px;
+  }
+
+  .label {
+    font-size: 9px;
+  }
 }

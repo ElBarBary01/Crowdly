@@ -30,25 +30,23 @@ export default function MobileNavbar({
 }: MobileNavbarProps) {
   return (
     <nav className={styles.navigation} aria-label="Mobile navigation">
-      <div className={styles.navigationBar}>
-        {navigationItems.map((item) => {
-          const isActive = item.id === activeItem;
+      {navigationItems.map((item) => {
+        const isActive = item.id === activeItem;
 
-          return (
-            <Link
-              className={`${styles.navigationItem} ${isActive ? styles.active : ""}`}
-              href={item.href}
-              key={item.id}
-              aria-current={isActive ? "page" : undefined}
-            >
-              <span className={styles.icon} aria-hidden="true">
-                {item.icon}
-              </span>
-              <span className={styles.label}>{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
+        return (
+          <Link
+            className={`${styles.navigationItem} ${isActive ? styles.active : ""}`}
+            href={item.href}
+            key={item.id}
+            aria-current={isActive ? "page" : undefined}
+          >
+            <span className={styles.icon} aria-hidden="true">
+              {item.icon}
+            </span>
+            <span className={styles.label}>{item.label}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

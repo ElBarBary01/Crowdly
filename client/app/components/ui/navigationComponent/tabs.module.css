@@ -2,6 +2,8 @@
   display: inline-flex;
   box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: 46.67px;
   overflow-x: auto;
   align-self: stretch;
@@ -10,6 +12,7 @@
   gap: var(--space-1);
   border-bottom: 0.67px solid rgba(255, 255, 255, 0.06);
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tabs::-webkit-scrollbar {
@@ -45,4 +48,10 @@
 .active {
   color: var(--color-purple);
   border-bottom-color: var(--color-purple);
+}
+
+@media (max-width: 480px) {
+  .tab {
+    padding-inline: var(--space-3);
+  }
 }

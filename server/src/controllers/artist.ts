@@ -5,7 +5,7 @@ import {
   getArtistById,
   updateArtist,
   deleteArtist,
-} from "../lib/artist";
+} from "../service/artist";
 import { CreateArtistDto, UpdateArtistDto } from "../types/artist";
 
 const getArtistsHandler = async (_req: Request, res: Response) => {
@@ -109,13 +109,11 @@ const deleteArtistHandler = async (req: Request, res: Response) => {
         .json({ success: false, message: "Artist not found" });
     }
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Artist deleted successfully",
-        data: artist,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Artist deleted successfully",
+      data: artist,
+    });
   } catch (error) {
     console.error("Error deleting artist:", error);
     res

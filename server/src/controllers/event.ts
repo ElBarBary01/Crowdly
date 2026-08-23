@@ -5,7 +5,7 @@ import {
   getEventById,
   updateEvent,
   deleteEvent,
-} from "../lib/event";
+} from "../service/event";
 import { CreateEventDto, UpdateEventDto } from "../types/event";
 
 const getEventsHandler = async (_req: Request, res: Response) => {

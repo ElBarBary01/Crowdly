@@ -5,7 +5,7 @@ import {
   getUserById,
   updateUser,
   deleteUser,
-} from "../lib/user";
+} from "../service/user";
 import { CreateUserDto, UpdateUserDto } from "../types/user";
 
 const getUsersHandler = async (_req: Request, res: Response) => {

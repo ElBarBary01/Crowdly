@@ -1,4 +1,4 @@
-import prisma from "./prisma";
+import prisma from "../lib/prisma";
 import { CreateVenueDto, UpdateVenueDto } from "../types/venue";
 
 export async function createVenue(dto: CreateVenueDto) {

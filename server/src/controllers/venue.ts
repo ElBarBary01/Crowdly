@@ -5,7 +5,7 @@ import {
   getVenueById,
   updateVenue,
   deleteVenue,
-} from "../lib/venue";
+} from "../service/venue";
 import { CreateVenueDto, UpdateVenueDto } from "../types/venue";
 
 const getVenuesHandler = async (_req: Request, res: Response) => {
@@ -52,12 +52,10 @@ const createVenueHandler = async (req: Request, res: Response) => {
       dto.capacity === undefined ||
       dto.capacity === null
     ) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Name, location, and capacity are required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Name, location, and capacity are required",
+      });
     }
 
     const venue = await createVenue(dto);
@@ -109,13 +107,11 @@ const deleteVenueHandler = async (req: Request, res: Response) => {
         .json({ success: false, message: "Venue not found" });
     }
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Venue deleted successfully",
-        data: venue,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Venue deleted successfully",
+      data: venue,
+    });
   } catch (error) {
     console.error("Error deleting venue:", error);
     res.status(500).json({ success: false, message: "Failed to delete venue" });

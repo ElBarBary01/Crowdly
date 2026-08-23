@@ -6,7 +6,7 @@ import {
   updateOrder,
   deleteOrder,
   getOrdersByUserId,
-} from "../lib/order";
+} from "../service/order";
 import { CreateOrderDto } from "../types/order";
 
 const getOrdersHandler = async (_req: Request, res: Response) => {
@@ -58,12 +58,10 @@ const createOrderHandler = async (req: Request, res: Response) => {
       !Array.isArray(dto.tickets) ||
       dto.tickets.length === 0
     ) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "tickets array is required and must not be empty",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "tickets array is required and must not be empty",
+      });
     }
 
     const order = await createOrder(dto);
@@ -115,13 +113,11 @@ const deleteOrderHandler = async (req: Request, res: Response) => {
         .json({ success: false, message: "Order not found" });
     }
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Order deleted successfully",
-        data: order,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Order deleted successfully",
+      data: order,
+    });
   } catch (error) {
     console.error("Error deleting order:", error);
     res.status(500).json({ success: false, message: "Failed to delete order" });

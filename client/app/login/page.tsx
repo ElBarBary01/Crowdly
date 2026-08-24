@@ -9,16 +9,50 @@ import "./login.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | undefined>(undefined);
+  const [passwordError, setPasswordError] = useState<string | undefined>(
+    undefined,
+  );
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  function validate() {
+    let valid = true;
+
+    if (!email) {
+      setEmailError("Email is required");
+      valid = false;
+    } else if (!EMAIL_REGEX.test(email)) {
+      setEmailError("Enter a valid email address");
+      valid = false;
+    } else {
+      setEmailError(undefined);
+    }
+
+    if (!password) {
+      setPasswordError("Password is required");
+      valid = false;
+    } else {
+      setPasswordError(undefined);
+    }
+
+    return valid;
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
+    setFormError(null);
+
+    if (!validate()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -32,13 +66,13 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Something went wrong");
+        setFormError(data.error || "Something went wrong");
         return;
       }
 
       router.push("/");
     } catch {
-      setError("Unable to reach the server");
+      setFormError("Unable to reach the server");
     } finally {
       setLoading(false);
     }
@@ -95,15 +129,18 @@ export default function LoginPage() {
             <span>or continue with email</span>
           </div>
 
-          <form className="login-form" onSubmit={handleSubmit}>
+          <form className="login-form" onSubmit={handleSubmit} noValidate>
             <InputField
               label="Email"
               type="email"
               name="email"
               placeholder="you@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (emailError) setEmailError(undefined);
+              }}
+              error={emailError}
             />
 
             <InputField
@@ -112,11 +149,14 @@ export default function LoginPage() {
               name="password"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (passwordError) setPasswordError(undefined);
+              }}
+              error={passwordError}
             />
 
-            {error && <p className="login-error">{error}</p>}
+            {formError && <p className="login-error">{formError}</p>}
 
             <div className="login-forgot">
               <a href="/forgot-password">Forgot password?</a>

@@ -130,33 +130,37 @@ export default function LoginPage() {
           </div>
 
           <form className="login-form" onSubmit={handleSubmit} noValidate>
-            <InputField
-              label="Email"
-              type="email"
-              name="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (emailError) setEmailError(undefined);
-              }}
-              error={emailError}
-            />
+            <div className="login-field-slot">
+              <InputField
+                label="Email"
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailError) setEmailError(undefined);
+                }}
+                error={emailError}
+              />
+            </div>
 
-            <InputField
-              label="Password"
-              type="password"
-              name="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (passwordError) setPasswordError(undefined);
-              }}
-              error={passwordError}
-            />
+            <div className="login-field-slot">
+              <InputField
+                label="Password"
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) setPasswordError(undefined);
+                }}
+                error={passwordError}
+              />
+            </div>
 
-            {formError && <p className="login-error">{formError}</p>}
+            <p className="login-error">{formError}</p>
 
             <div className="login-forgot">
               <a href="/forgot-password">Forgot password?</a>

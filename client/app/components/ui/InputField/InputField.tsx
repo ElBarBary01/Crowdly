@@ -49,7 +49,9 @@ export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
           )}
         </div>
 
-        {error && <span className="input-field__error">{error}</span>}
+        <span className="input-field__error" aria-live="polite">
+          {error || "\u00a0"}
+        </span>
       </div>
     );
   },

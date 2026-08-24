@@ -2,26 +2,27 @@ html,
 body {
   height: 100%;
   margin: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .login-page {
-  height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-4);
+  padding: clamp(0.5rem, 2vh, 1rem);
   background: var(--color-background);
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
 }
 
 .login-card {
   width: 100%;
   max-width: 480px;
-  max-height: 100%;
   border-radius: var(--radius-2xl);
-  overflow-y: auto;
+  box-sizing: border-box;
+  overflow: visible;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
 }
@@ -29,8 +30,8 @@ body {
 .login-card-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-8);
+  gap: clamp(0.5rem, 1.5vh, 0.75rem);
+  padding: clamp(1rem, 4vh, 2rem);
 }
 
 .login-brand {
@@ -128,7 +129,14 @@ body {
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: clamp(0.5rem, 2vh, 1rem);
+}
+
+@media (max-height: 700px) {
+  .input-field__input {
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+  }
 }
 
 .login-error {

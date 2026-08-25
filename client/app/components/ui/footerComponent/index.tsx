@@ -76,7 +76,7 @@ export default function Footer() {
 
       <div className={styles.bottom}>
         <span className={styles.copyright}>
-          © {new Date().getFullYear()} Stagefront, Inc. All rights reserved.
+          © {new Date().getFullYear()} Crowdly, Inc. All rights reserved.
         </span>
 
         <div className={styles.legal}>
@@ -85,13 +85,6 @@ export default function Footer() {
               {link.label}
             </Link>
           ))}
-        </div>
-
-        <div className={styles.payments}>
-          <span>VISA</span>
-          <span>MC</span>
-          <span>AMEX</span>
-          <span>PayPal</span>
         </div>
       </div>
     </footer>

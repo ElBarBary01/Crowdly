@@ -2,8 +2,8 @@
 
 import "./styles.css";
 import { useState } from "react";
-import ToggleSwitch from "../components/ui/ToggleSwitch/ToggleSwitch";
-import Checkbox from "../components/ui/Checkbox/Checkbox";
+import ToggleSwitch from "../../components/ui/ToggleSwitch/ToggleSwitch";
+import Checkbox from "../../components/ui/Checkbox/Checkbox";
 
 export default function TestPage() {
   const [isToggleOn, setIsToggleOn] = useState(false);

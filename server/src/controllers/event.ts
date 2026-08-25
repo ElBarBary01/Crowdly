@@ -3,10 +3,15 @@ import {
   createEvent,
   getEvents,
   getEventById,
+  InvalidEventConfigurationError,
   updateEvent,
   deleteEvent,
 } from "../service/event";
-import { CreateEventDto, UpdateEventDto } from "../types/event";
+import {
+  areEventTickets,
+  CreateEventDto,
+  UpdateEventDto,
+} from "../types/event";
 
 const getEventsHandler = async (_req: Request, res: Response) => {
   try {
@@ -46,16 +51,28 @@ const createEventHandler = async (req: Request, res: Response) => {
     const dto: CreateEventDto = req.body;
 
     // Validate required fields
-    if (!dto.title || !dto.date || !dto.time || !dto.venueId) {
+    if (
+      !dto.title ||
+      !dto.date ||
+      !dto.time ||
+      !dto.venueId ||
+      !Array.isArray(dto.genres) ||
+      !Array.isArray(dto.artistsIds) ||
+      !areEventTickets(dto.tickets)
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Title, date, time, and venueId are required",
+        message:
+          "Title, date, time, venueId, genres, artistsIds, and valid unique tickets are required",
       });
     }
 
     const event = await createEvent(dto);
     res.status(201).json({ success: true, data: event });
   } catch (error) {
+    if (error instanceof InvalidEventConfigurationError) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     console.error("Error creating event:", error);
     res.status(500).json({ success: false, message: "Failed to create event" });
   }
@@ -71,6 +88,13 @@ const updateEventHandler = async (req: Request, res: Response) => {
     }
     const dto: UpdateEventDto = req.body;
 
+    if (dto.tickets !== undefined && !areEventTickets(dto.tickets)) {
+      return res.status(400).json({
+        success: false,
+        message: "tickets must contain valid, unique ticket categories",
+      });
+    }
+
     const event = await updateEvent(id, dto);
 
     if (!event) {
@@ -81,6 +105,9 @@ const updateEventHandler = async (req: Request, res: Response) => {
 
     res.status(200).json({ success: true, data: event });
   } catch (error) {
+    if (error instanceof InvalidEventConfigurationError) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     console.error("Error updating event:", error);
     res.status(500).json({ success: false, message: "Failed to update event" });
   }

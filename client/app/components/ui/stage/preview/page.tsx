@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Stage, {
   type PriceFormatter,
+  type StageEvent,
+  type StageSection,
   type StageType,
-  type TheatreSection,
+  type StageVenue,
   type TicketCategory,
   type TicketType,
   type TicketTypeFormatter,
@@ -39,6 +41,18 @@ const TICKET_CATEGORIES = {
   },
 } satisfies Record<string, TicketCategory>;
 
+const EVENT_TICKETS = Object.values(TICKET_CATEGORIES);
+const TICKETS_LEFT = EVENT_TICKETS.reduce(
+  (total, ticket) => total + ticket.quantity,
+  0,
+);
+
+const VENUE_CAPACITY: Record<StageType, number> = {
+  THEATER: 420,
+  CONCERT_STAGE: 850,
+  STADIUM: 1200,
+};
+
 const TICKET_TYPE_LABELS: Record<TicketType, string> = {
   EARLY_BIRD: "Early bird",
   GENERAL_ADMISSION: "General admission",
@@ -46,129 +60,171 @@ const TICKET_TYPE_LABELS: Record<TicketType, string> = {
   VIP_MEET_GREET: "VIP meet & greet",
 };
 
-function section(
+function stageSection(
   id: string,
   name: string,
-  ticketCategory: TicketCategory,
-  level?: string,
-): TheatreSection {
-  return { id, name, ticketCategory, level };
+  ticketType: TicketType,
+  level: string,
+): StageSection {
+  return { id, name, ticketType, level };
 }
 
-const PREVIEW_SECTIONS = {
+const PREVIEW_STAGE_SECTIONS = {
   THEATER: [
-    section(
+    stageSection(
       "theater-1",
       "Orchestra Left",
-      TICKET_CATEGORIES.vip,
+      TICKET_CATEGORIES.vip.type,
       "Lower level",
     ),
-    section(
+    stageSection(
       "theater-2",
       "Orchestra Right",
-      TICKET_CATEGORIES.vip,
+      TICKET_CATEGORIES.vip.type,
       "Lower level",
     ),
-    section(
+    stageSection(
       "theater-3",
       "Middle Left",
-      TICKET_CATEGORIES.generalAdmission,
+      TICKET_CATEGORIES.generalAdmission.type,
       "Lower level",
     ),
-    section(
+    stageSection(
       "theater-4",
       "Middle Right",
-      TICKET_CATEGORIES.generalAdmission,
+      TICKET_CATEGORIES.generalAdmission.type,
       "Lower level",
     ),
-    section(
+    stageSection(
       "theater-5",
       "Rear Balcony",
-      TICKET_CATEGORIES.earlyBird,
+      TICKET_CATEGORIES.earlyBird.type,
       "Upper level",
     ),
   ],
   CONCERT_STAGE: [
-    section(
+    stageSection(
       "concert-1",
       "Front Pit",
-      TICKET_CATEGORIES.vipMeetGreet,
+      TICKET_CATEGORIES.vipMeetGreet.type,
       "Floor level",
     ),
-    section("concert-2", "Floor A", TICKET_CATEGORIES.vip, "Floor level"),
-    section("concert-3", "Floor B", TICKET_CATEGORIES.vip, "Floor level"),
-    section(
+    stageSection(
+      "concert-2",
+      "Floor A",
+      TICKET_CATEGORIES.vip.type,
+      "Floor level",
+    ),
+    stageSection(
+      "concert-3",
+      "Floor B",
+      TICKET_CATEGORIES.vip.type,
+      "Floor level",
+    ),
+    stageSection(
       "concert-4",
       "Rear Floor",
-      TICKET_CATEGORIES.generalAdmission,
+      TICKET_CATEGORIES.generalAdmission.type,
       "Floor level",
     ),
-    section(
+    stageSection(
       "concert-5",
       "Lower Left",
-      TICKET_CATEGORIES.generalAdmission,
+      TICKET_CATEGORIES.generalAdmission.type,
       "Lower level",
     ),
-    section(
+    stageSection(
       "concert-6",
       "Lower Right",
-      TICKET_CATEGORIES.generalAdmission,
+      TICKET_CATEGORIES.generalAdmission.type,
       "Lower level",
     ),
-    section(
+    stageSection(
       "concert-7",
       "Upper Bowl",
-      TICKET_CATEGORIES.earlyBird,
+      TICKET_CATEGORIES.earlyBird.type,
       "Upper level",
     ),
-    section(
+    stageSection(
       "concert-8",
       "Upper Bowl",
-      TICKET_CATEGORIES.earlyBird,
+      TICKET_CATEGORIES.earlyBird.type,
       "Upper level",
     ),
   ],
   STADIUM: [
-    section("stadium-1", "North Stand", TICKET_CATEGORIES.vip, "Lower level"),
-    section(
+    stageSection(
+      "stadium-1",
+      "North Stand",
+      TICKET_CATEGORIES.vip.type,
+      "Lower level",
+    ),
+    stageSection(
       "stadium-2",
       "North East Corner",
-      TICKET_CATEGORIES.generalAdmission,
+      TICKET_CATEGORIES.generalAdmission.type,
       "Lower level",
     ),
-    section("stadium-3", "East Stand", TICKET_CATEGORIES.vip, "Lower level"),
-    section(
+    stageSection(
+      "stadium-3",
+      "East Stand",
+      TICKET_CATEGORIES.vip.type,
+      "Lower level",
+    ),
+    stageSection(
       "stadium-4",
       "South East Corner",
-      TICKET_CATEGORIES.generalAdmission,
+      TICKET_CATEGORIES.generalAdmission.type,
       "Lower level",
     ),
-    section(
+    stageSection(
       "stadium-5",
       "South Stand",
-      TICKET_CATEGORIES.earlyBird,
+      TICKET_CATEGORIES.earlyBird.type,
       "Upper level",
     ),
-    section(
+    stageSection(
       "stadium-6",
       "South West Corner",
-      TICKET_CATEGORIES.generalAdmission,
+      TICKET_CATEGORIES.generalAdmission.type,
       "Upper level",
     ),
-    section(
+    stageSection(
       "stadium-7",
       "West Stand",
-      TICKET_CATEGORIES.earlyBird,
+      TICKET_CATEGORIES.earlyBird.type,
       "Upper level",
     ),
-    section(
+    stageSection(
       "stadium-8",
       "North West Corner",
-      TICKET_CATEGORIES.generalAdmission,
+      TICKET_CATEGORIES.generalAdmission.type,
       "Upper level",
     ),
   ],
-} satisfies Record<StageType, readonly TheatreSection[]>;
+} satisfies Record<StageType, readonly StageSection[]>;
+
+function previewVenue(stageType: StageType): StageVenue {
+  return {
+    stageType,
+    stageSections: PREVIEW_STAGE_SECTIONS[stageType],
+    capacity: VENUE_CAPACITY[stageType],
+    ticketsLeft: TICKETS_LEFT,
+  };
+}
+
+function previewEvent(stageType: StageType): StageEvent {
+  return {
+    venue: previewVenue(stageType),
+    tickets: EVENT_TICKETS,
+  };
+}
+
+const PREVIEW_EVENTS: Record<StageType, StageEvent> = {
+  THEATER: previewEvent("THEATER"),
+  CONCERT_STAGE: previewEvent("CONCERT_STAGE"),
+  STADIUM: previewEvent("STADIUM"),
+};
 
 const PRICE_FORMATTER = new Intl.NumberFormat("en-EG", {
   style: "currency",
@@ -184,7 +240,7 @@ const formatTicketType: TicketTypeFormatter = (ticketType) =>
 
 export default function StagePreviewPage() {
   const [stageType, setStageType] = useState<StageType>("THEATER");
-  const sections = PREVIEW_SECTIONS[stageType];
+  const venue = PREVIEW_EVENTS[stageType].venue;
 
   return (
     <div className="stage-preview">
@@ -220,7 +276,7 @@ export default function StagePreviewPage() {
         <span>
           {VENUE_OPTIONS.find((option) => option.type === stageType)?.label}
         </span>
-        <span>{sections.length} sections</span>
+        <span>{venue.stageSections.length} sections</span>
       </div>
 
       {VENUE_OPTIONS.map((option) => (
@@ -230,8 +286,7 @@ export default function StagePreviewPage() {
           key={option.type}
         >
           <Stage
-            stageType={option.type}
-            sections={PREVIEW_SECTIONS[option.type]}
+            event={PREVIEW_EVENTS[option.type]}
             formatPrice={formatPrice}
             formatTicketType={formatTicketType}
           />

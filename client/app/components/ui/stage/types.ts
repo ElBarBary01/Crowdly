@@ -48,19 +48,26 @@ export type TicketType =
   | "VIP_MEET_GREET";
 
 /** Mirrors the embedded Ticket type returned on Event.tickets by Prisma. */
-export interface TicketCategory {
+export interface EventTicket {
   type: TicketType;
   price: number;
   quantity: number;
   description: string | null;
 }
 
-export interface TheatreSection {
+/** @deprecated Use EventTicket. */
+export type TicketCategory = EventTicket;
+
+/** Mirrors the embedded StageSection type returned on Venue.stageSections. */
+export interface StageSection {
   id: string;
   name: string;
-  ticketCategory: TicketCategory;
-  level?: string;
+  ticketType: TicketType;
+  level: string | null;
 }
+
+/** @deprecated Use StageSection. */
+export type TheatreSection = StageSection;
 
 export interface StageExtensionLayout {
   x: number;
@@ -93,16 +100,30 @@ export interface StageLabels {
   stage: string;
   field: string;
   ticketCategories: string;
+  capacity: (count: number) => string;
+  ticketsLeft: (count: number) => string;
   availableSeats: (count: number) => string;
   price: (formattedPrice: string) => string;
 }
 
-export type PriceFormatter = (ticketCategory: TicketCategory) => string;
+export type PriceFormatter = (ticket: EventTicket) => string;
 export type TicketTypeFormatter = (ticketType: TicketType) => string;
 
-export interface StageProps {
+export interface StageVenue {
   stageType: StageType;
-  sections: readonly TheatreSection[];
+  stageSections: readonly StageSection[];
+  capacity: number;
+  ticketsLeft: number;
+}
+
+/** The exact Event response subset consumed by the Stage component. */
+export interface StageEvent {
+  venue: StageVenue;
+  tickets: readonly EventTicket[];
+}
+
+export interface StageProps {
+  event: StageEvent;
   formatPrice: PriceFormatter;
   formatTicketType: TicketTypeFormatter;
   sectionLayouts?: SectionLayoutMap;
@@ -114,7 +135,8 @@ export interface StageProps {
   className?: string;
 }
 
-export interface ResolvedSection extends TheatreSection {
+export interface ResolvedSection extends StageSection {
+  ticketCategory: EventTicket;
   layout: SectionLayout;
   colorTone: 0 | 1 | 2 | 3 | 4 | 5;
 }

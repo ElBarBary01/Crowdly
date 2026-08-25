@@ -3,10 +3,12 @@ import {
   createVenue,
   getVenues,
   getVenueById,
+  InvalidVenueConfigurationError,
   updateVenue,
   deleteVenue,
 } from "../service/venue";
 import {
+  areStageSections,
   CreateVenueDto,
   isStageType,
   UpdateVenueDto,
@@ -54,13 +56,14 @@ const createVenueHandler = async (req: Request, res: Response) => {
       !dto.name ||
       !dto.location ||
       !isStageType(dto.stageType) ||
-      dto.capacity === undefined ||
-      dto.capacity === null
+      !Number.isInteger(dto.capacity) ||
+      dto.capacity <= 0 ||
+      !areStageSections(dto.stageSections)
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Name, location, capacity, and a valid stageType are required",
+          "Name, location, a positive capacity, a valid stageType, and at least one valid stageSection are required",
       });
     }
 
@@ -89,6 +92,27 @@ const updateVenueHandler = async (req: Request, res: Response) => {
       });
     }
 
+    if (
+      dto.capacity !== undefined &&
+      (!Number.isInteger(dto.capacity) || dto.capacity <= 0)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "capacity must be a positive integer",
+      });
+    }
+
+    if (
+      dto.stageSections !== undefined &&
+      !areStageSections(dto.stageSections)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "stageSections must contain unique IDs, names, and valid ticket types",
+      });
+    }
+
     const venue = await updateVenue(id, dto);
 
     if (!venue) {
@@ -99,6 +123,9 @@ const updateVenueHandler = async (req: Request, res: Response) => {
 
     res.status(200).json({ success: true, data: venue });
   } catch (error) {
+    if (error instanceof InvalidVenueConfigurationError) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     console.error("Error updating venue:", error);
     res.status(500).json({ success: false, message: "Failed to update venue" });
   }

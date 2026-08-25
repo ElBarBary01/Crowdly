@@ -5,6 +5,7 @@ import "./stage.css";
 
 export type {
   ArcSectionLayout,
+  EventTicket,
   Point,
   PriceFormatter,
   RectangularSectionLayout,
@@ -13,9 +14,12 @@ export type {
   SectionLayoutMap,
   StageExtensionLayout,
   StageLabels,
+  StageEvent,
   StageProps,
+  StageSection,
   StageSurfaceLayout,
   StageType,
+  StageVenue,
   TicketCategory,
   TicketType,
   TicketTypeFormatter,
@@ -28,6 +32,8 @@ const DEFAULT_LABELS: StageLabels = {
   stage: "Stage",
   field: "Field",
   ticketCategories: "Ticket categories",
+  capacity: (count) => `Capacity: ${count}`,
+  ticketsLeft: (count) => `Tickets left: ${count}`,
   availableSeats: (count) => `Available seats: ${count}`,
   price: (formattedPrice) => `Price: ${formattedPrice}`,
 };
@@ -37,8 +43,7 @@ function classNames(...values: Array<string | undefined | false>): string {
 }
 
 export default function Stage({
-  stageType,
-  sections,
+  event,
   formatPrice,
   formatTicketType,
   sectionLayouts,
@@ -49,15 +54,18 @@ export default function Stage({
   ariaLabel,
   className,
 }: StageProps) {
+  const { tickets, venue: venueData } = event;
+  const { capacity, stageSections, stageType, ticketsLeft } = venueData;
   const labels = { ...DEFAULT_LABELS, ...labelOverrides };
   const venue = resolveVenueLayout(stageType, venueLayout, stage);
   const resolvedSections = resolveSections(
-    sections,
+    stageSections,
+    tickets,
     stageType,
     venue,
     sectionLayouts,
   );
-  const ticketCategories = Array.from(
+  const displayedTicketCategories = Array.from(
     new Map(
       resolvedSections.map((section) => [
         section.ticketCategory.type,
@@ -78,6 +86,11 @@ export default function Stage({
       )}
       aria-label={ariaLabel ?? labels.map}
     >
+      <div className="stage-map__availability" aria-live="polite">
+        <span>{labels.capacity(capacity)}</span>
+        <span>{labels.ticketsLeft(ticketsLeft)}</span>
+      </div>
+
       <SeatingMap
         stageType={stageType}
         sections={resolvedSections}
@@ -89,12 +102,12 @@ export default function Stage({
         ariaLabel={ariaLabel ?? labels.map}
       />
 
-      {ticketCategories.length > 0 && (
+      {displayedTicketCategories.length > 0 && (
         <div
           className="stage-map__category-legend"
           aria-label={labels.ticketCategories}
         >
-          {ticketCategories.map(({ ticketCategory, colorTone }) => (
+          {displayedTicketCategories.map(({ ticketCategory, colorTone }) => (
             <span
               className="stage-map__legend-item"
               key={ticketCategory.type}

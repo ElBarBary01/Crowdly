@@ -6,9 +6,10 @@ import type {
   SectionBounds,
   SectionLayout,
   SectionLayoutMap,
+  EventTicket,
+  StageSection,
   StageSurfaceLayout,
   StageType,
-  TheatreSection,
   VenueLayout,
 } from "./types";
 
@@ -90,9 +91,9 @@ export function resolveVenueLayout(
   };
 }
 
-function toneFromSection(section: TheatreSection): 0 | 1 | 2 | 3 | 4 | 5 {
+function toneFromSection(section: StageSection): 0 | 1 | 2 | 3 | 4 | 5 {
   let hash = 0;
-  for (const character of section.ticketCategory.type) {
+  for (const character of section.ticketType) {
     hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
   }
   return (hash % 6) as 0 | 1 | 2 | 3 | 4 | 5;
@@ -222,22 +223,37 @@ function stadiumAutoLayout(
 }
 
 export function resolveSections(
-  sections: readonly TheatreSection[],
+  stageSections: readonly StageSection[],
+  tickets: readonly EventTicket[],
   stageType: StageType,
   venue: VenueLayout,
   sectionLayouts?: SectionLayoutMap,
 ): readonly ResolvedSection[] {
-  return sections.map((section, index) => ({
-    ...section,
-    layout:
-      sectionLayouts?.[section.id] ??
-      (stageType === "THEATER"
-        ? theaterAutoLayout(index, sections.length, venue)
-        : stageType === "CONCERT_STAGE"
-          ? concertAutoLayout(index, sections.length, venue)
-          : stadiumAutoLayout(index, sections.length, venue)),
-    colorTone: toneFromSection(section),
-  }));
+  const ticketsByType = new Map(
+    tickets.map((ticket) => [ticket.type, ticket]),
+  );
+
+  return stageSections.map((section, index) => {
+    const ticketCategory = ticketsByType.get(section.ticketType);
+    if (!ticketCategory) {
+      throw new Error(
+        `Missing Event ticket category for Venue stage section type ${section.ticketType}`,
+      );
+    }
+
+    return {
+      ...section,
+      ticketCategory,
+      layout:
+        sectionLayouts?.[section.id] ??
+        (stageType === "THEATER"
+          ? theaterAutoLayout(index, stageSections.length, venue)
+          : stageType === "CONCERT_STAGE"
+            ? concertAutoLayout(index, stageSections.length, venue)
+            : stadiumAutoLayout(index, stageSections.length, venue)),
+      colorTone: toneFromSection(section),
+    };
+  });
 }
 
 function polarPoint(

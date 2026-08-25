@@ -1,0 +1,234 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-bold);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    opacity var(--transition-base),
+    transform var(--transition-fast);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-purple-light);
+  outline-offset: 2px;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.sm {
+  height: 36px;
+  padding: 0 var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.md {
+  height: 44px;
+  padding: 0 var(--space-6);
+  font-size: var(--text-body);
+}
+
+.lg {
+  height: 52px;
+  padding: 0 var(--space-8);
+  font-size: var(--text-h6);
+}
+
+.primary {
+  background: linear-gradient(
+    90deg,
+    var(--color-purple) 0%,
+    var(--color-neon-pink) 100%
+  );
+  color: var(--color-text);
+  box-shadow: var(--shadow-glow-purple);
+}
+
+.primary:hover:not(:disabled) {
+  box-shadow: var(--shadow-glow-pink);
+}
+
+.primary:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.secondary {
+  background: transparent;
+  color: var(--color-purple-light);
+  border: 1.5px solid var(--color-purple);
+}
+
+.secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-purple) 10%, transparent);
+  border-color: var(--color-purple-light);
+}
+
+.secondary:disabled {
+  opacity: 0.4;
+}
+
+.secondary-neutral {
+  background: transparent;
+  color: var(--color-text);
+  border: 1.5px solid var(--color-border);
+}
+
+.secondary-neutral:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  border-color: var(--color-dim);
+}
+
+.secondary-neutral:disabled {
+  opacity: 0.4;
+}
+
+.ghost {
+  background: transparent;
+  color: var(--color-muted);
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.ghost:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+
+.ghost:disabled {
+  opacity: 0.4;
+}
+
+.ghost-accent {
+  background: transparent;
+  color: var(--color-purple-light);
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+  font-weight: var(--font-weight-medium);
+}
+
+.ghost-accent:hover:not(:disabled) {
+  color: var(--color-purple);
+}
+
+.ghost-accent:disabled {
+  opacity: 0.4;
+}
+
+.destructive {
+  background: var(--color-error);
+  color: var(--color-text);
+}
+
+.destructive:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-error) 85%, black);
+}
+
+.destructive:disabled {
+  opacity: 0.4;
+}
+
+/* Destructive outline — tinted (e.g. "Cancel Order") */
+
+.destructive-outline {
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+  color: var(--color-error);
+  border: 1px solid color-mix(in srgb, var(--color-error) 30%, transparent);
+}
+
+.destructive-outline:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-error) 18%, transparent);
+  border-color: var(--color-error);
+}
+
+.destructive-outline:disabled {
+  opacity: 0.4;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  border: 2px solid color-mix(in srgb, var(--color-text) 40%, transparent);
+  border-top-color: var(--color-text);
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-2);
+  color: var(--color-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition:
+    background var(--transition-base),
+    color var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+}
+
+.iconButton:focus-visible {
+  outline: 2px solid var(--color-purple-light);
+  outline-offset: 2px;
+}
+
+.iconButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.iconButton.sm {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+.iconButton.md {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+
+.iconButton.lg {
+  width: 52px;
+  height: 52px;
+  padding: 0;
+}

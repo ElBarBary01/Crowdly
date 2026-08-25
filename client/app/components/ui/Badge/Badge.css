@@ -1,0 +1,61 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.success {
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-success) 30%, transparent);
+}
+
+.error {
+  color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-error) 30%, transparent);
+}
+
+.warning {
+  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
+}
+
+.neutral {
+  color: var(--color-muted);
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
+}
+
+.purple {
+  color: var(--color-purple-light);
+  background: color-mix(in srgb, var(--color-purple) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-purple) 30%, transparent);
+}
+
+.pink {
+  color: var(--color-neon-pink);
+  background: color-mix(in srgb, var(--color-neon-pink) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-neon-pink) 30%, transparent);
+}
+
+/*no blues in styles*/
+.info {
+  color: #3b82f6;
+  background: color-mix(in srgb, #3b82f6 12%, transparent);
+  border-color: color-mix(in srgb, #3b82f6 30%, transparent);
+}

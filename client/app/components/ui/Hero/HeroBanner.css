@@ -1,0 +1,93 @@
+.hero-banner {
+  position: relative;
+  width: 100%;
+  min-height: 26rem;
+  box-sizing: border-box;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  background-color: var(--color-background);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+}
+
+.hero-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-banner--overlay-dark::before {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-background) 94%, transparent) 0%,
+    color-mix(in srgb, var(--color-background) 70%, transparent) 40%,
+    color-mix(in srgb, var(--color-background) 25%, transparent) 70%,
+    transparent 100%
+  );
+}
+
+.hero-banner--overlay-light::before {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-text) 88%, transparent) 0%,
+    color-mix(in srgb, var(--color-text) 50%, transparent) 45%,
+    transparent 100%
+  );
+}
+
+.hero-banner--overlay-none::before {
+  background: transparent;
+}
+
+.hero-banner__content {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-16) var(--space-12);
+  max-width: 40rem;
+}
+
+.hero-banner__title {
+  font-family: var(--font-sans);
+  font-size: clamp(2.25rem, 5vw, var(--text-h1));
+  font-weight: var(--font-weight-heading);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  margin: 0 0 var(--space-6) 0;
+}
+
+.hero-banner__subtitle {
+  font-family: var(--font-sans);
+  font-size: var(--text-h5);
+  font-weight: var(--font-weight-body);
+  line-height: var(--leading-relaxed);
+  color: var(--color-muted);
+  max-width: 32rem;
+  margin: 0;
+}
+
+.hero-banner__children {
+  margin-top: var(--space-8);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 40rem) {
+  .hero-banner {
+    min-height: 20rem;
+    border-radius: var(--radius-xl);
+  }
+
+  .hero-banner__content {
+    padding: var(--space-8) var(--space-6);
+  }
+}

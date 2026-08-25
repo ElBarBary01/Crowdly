@@ -1,5 +1,5 @@
 import Link from "next/link";
-import MobileNavbar from "./mobileNavbar";
+import MobileNavbar from "../mobileNavbar";
 import styles from "./topNavbar.module.css";
 
 const navigationItems = [

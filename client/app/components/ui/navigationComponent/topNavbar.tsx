@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import MobileNavbar from "./mobileNavbar";
 import styles from "./topNavbar.module.css";
 
@@ -9,6 +12,12 @@ const navigationItems = [
 ];
 
 export default function TopNavbar() {
+  const pathname = usePathname();
+
+  if (pathname === "/login" || pathname === "/signup") {
+    return null;
+  }
+
   return (
     <>
       <header className={styles.topNavbar}>

@@ -92,6 +92,7 @@ export default function LoginPage() {
       {showVerifyPopup && (
         <VerifyPopup
           email={verificationEmail}
+          onClose={() => setShowVerifyPopup(false)}
           onVerified={() => router.push("/")}
         />
       )}

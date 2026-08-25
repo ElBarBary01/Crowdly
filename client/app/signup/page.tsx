@@ -139,7 +139,12 @@ export default function SignupPage() {
 
   return (
     <div className="signup-page">
-      {showVerifyPopup && <VerifyPopup email={registeredEmail} />}
+      {showVerifyPopup && (
+        <VerifyPopup
+          email={registeredEmail}
+          onClose={() => setShowVerifyPopup(false)}
+        />
+      )}
 
       <Card className="signup-card">
         <CardContent className="signup-card-content">

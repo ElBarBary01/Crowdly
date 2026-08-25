@@ -17,10 +17,15 @@ const OTP_LENGTH = 6;
 
 interface VerifyPopupProps {
   email: string;
+  onClose: () => void;
   onVerified?: () => void;
 }
 
-export default function VerifyPopup({ email, onVerified }: VerifyPopupProps) {
+export default function VerifyPopup({
+  email,
+  onClose,
+  onVerified,
+}: VerifyPopupProps) {
   const router = useRouter();
   const [otpDigits, setOtpDigits] = useState<string[]>(
     Array(OTP_LENGTH).fill(""),
@@ -39,6 +44,14 @@ export default function VerifyPopup({ email, onVerified }: VerifyPopupProps) {
     const digits = value.replace(/\D/g, "").slice(0, OTP_LENGTH - startIndex);
     const nextDigits = [...otpDigits];
 
+    if (digits.length > 1) {
+      nextDigits.fill("", startIndex);
+    }
+
+    if (!digits.length) {
+      nextDigits[startIndex] = "";
+    }
+
     digits.split("").forEach((digit, offset) => {
       nextDigits[startIndex + offset] = digit;
     });
@@ -54,12 +67,18 @@ export default function VerifyPopup({ email, onVerified }: VerifyPopupProps) {
     event: KeyboardEvent<HTMLInputElement>,
     index: number,
   ) {
-    if (event.key === "Backspace" && !otpDigits[index] && index > 0) {
+    if (event.key === "Backspace") {
       event.preventDefault();
       const nextDigits = [...otpDigits];
-      nextDigits[index - 1] = "";
-      setOtpDigits(nextDigits);
-      focusOtpInput(index - 1);
+
+      if (otpDigits[index]) {
+        nextDigits[index] = "";
+        setOtpDigits(nextDigits);
+      } else if (index > 0) {
+        nextDigits[index - 1] = "";
+        setOtpDigits(nextDigits);
+        focusOtpInput(index - 1);
+      }
     } else if (event.key === "ArrowLeft" && index > 0) {
       event.preventDefault();
       focusOtpInput(index - 1);
@@ -115,13 +134,27 @@ export default function VerifyPopup({ email, onVerified }: VerifyPopupProps) {
   }
 
   return (
-    <div className="verify-popup-overlay" role="presentation">
+    <div
+      className="verify-popup-overlay"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <Card
         className="verify-popup-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="verify-popup-title"
       >
+        <button
+          type="button"
+          className="verify-popup-close"
+          aria-label="Close verification popup"
+          onClick={onClose}
+        >
+          <span aria-hidden="true">&times;</span>
+        </button>
         <CardContent className="verify-popup-content">
           <div className="verify-popup-icon" aria-hidden="true">
             ✉️

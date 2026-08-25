@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import Button from "../Button/Button";
+import Button from "../Button";
 import { Card, CardContent } from "../card/card";
 import "./VerifyPopup.css";
 

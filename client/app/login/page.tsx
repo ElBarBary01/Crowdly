@@ -2,10 +2,10 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import InputField from "../components/ui/InputField/InputField";
-import Button from "../components/ui/Button/Button";
+import InputField from "../components/ui/InputField";
+import Button from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/card/card";
-import VerifyPopup from "../components/ui/VerifyPopup/VerifyPopup";
+import VerifyPopup from "../components/ui/VerifyPopup";
 import "./login.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";

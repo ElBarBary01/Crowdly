@@ -10,13 +10,11 @@ export function requireAuth(
   res: Response,
   next: NextFunction,
 ) {
-  const authHeader = req.headers.authorization;
+  const token = req.cookies?.token;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "No token provided" });
+  if (!token) {
+    return res.status(401).json({ error: "Not authenticated" });
   }
-
-  const token = authHeader.split(" ")[1];
 
   try {
     req.user = verifyToken(token);

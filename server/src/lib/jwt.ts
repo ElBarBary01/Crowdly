@@ -8,8 +8,14 @@ export interface JwtPayload {
   email: string;
 }
 
-export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+export function signToken(
+  payload: JwtPayload,
+  options?: jwt.SignOptions,
+): string {
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN,
+    ...options,
+  });
 }
 
 export function verifyToken(token: string): JwtPayload {

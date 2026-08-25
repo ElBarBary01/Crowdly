@@ -83,6 +83,10 @@ model User {
   profileImage String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+    emailVerified Boolean @default(false)
+  verificationCodeHash    String?
+  verificationCodeExpires DateTime?
+  verificationAttempts    Int      @default(0)
 
   // Orders placed by this user
   orders Order[]
@@ -151,6 +155,7 @@ model Order {
   updatedAt   DateTime     @updatedAt @map("updated_at")
   status      OrderStatus  @default(TICKET_SELECTION)
   serviceFee  Float          @default(0)
+
 
   // Embedded event data snapshot at time of order
   events      OrderEvent[]

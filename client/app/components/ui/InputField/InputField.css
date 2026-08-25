@@ -48,6 +48,7 @@
 }
 
 .input-field__error {
+  min-height: 1.21875rem;
   font-size: var(--text-caption);
   color: var(--color-error);
 }

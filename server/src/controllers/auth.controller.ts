@@ -47,10 +47,7 @@ async function issueVerificationCode(user: {
     },
   });
 
-  const verifyToken = signToken(
-    { userId: user.id, email: user.email },
-    { expiresIn: "10m" },
-  );
+  const verifyToken = signToken({ userId: user.id }, { expiresIn: "10m" });
 
   if (process.env.RESEND_API_KEY) {
     await sendVerifyEmail({
@@ -138,7 +135,7 @@ export async function verifyEmail(req: Request, res: Response) {
     });
   }
 
-  const loginToken = signToken({ userId: user.id, email: user.email });
+  const loginToken = signToken({ userId: user.id });
   res.cookie("token", loginToken, COOKIE_OPTIONS);
 
   return res.status(200).json({
@@ -161,7 +158,7 @@ export async function verifyCode(req: Request, res: Response) {
 
   if (user.emailVerified) {
     // Already verified — treat as success (idempotent).
-    const loginToken = signToken({ userId: user.id, email: user.email });
+    const loginToken = signToken({ userId: user.id });
     res.cookie("token", loginToken, COOKIE_OPTIONS);
     return res
       .status(200)
@@ -207,7 +204,7 @@ export async function verifyCode(req: Request, res: Response) {
     },
   });
 
-  const loginToken = signToken({ userId: user.id, email: user.email });
+  const loginToken = signToken({ userId: user.id });
   res.cookie("token", loginToken, COOKIE_OPTIONS);
 
   return res.status(200).json({
@@ -241,7 +238,7 @@ export async function login(req: Request, res: Response) {
     });
   }
 
-  const token = signToken({ userId: user.id, email: user.email });
+  const token = signToken({ userId: user.id });
 
   res.cookie("token", token, COOKIE_OPTIONS);
 
@@ -256,7 +253,7 @@ export async function logout(_req: Request, res: Response) {
 }
 
 export async function me(req: Request, res: Response) {
-  const authReq = req as Request & { user?: { userId: string; email: string } };
+  const authReq = req as Request & { user?: { userId: string } };
 
   if (!authReq.user) {
     return res.status(401).json({ error: "Not authenticated" });

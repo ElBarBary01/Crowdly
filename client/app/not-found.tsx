@@ -14,7 +14,7 @@ export default function NotFound() {
       </p>
       <h1 className={styles.title}>Page not found</h1>
       <p className={styles.subtitle}>
-        The show you&apos;re looking for has moved or never existed.
+        The page you&apos;re looking for has moved or never existed.
       </p>
       <Link href="/" className={styles.homeButton}>
         Back to Home

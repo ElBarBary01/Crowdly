@@ -1,8 +1,8 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import TopNavbar from "./components/ui/navigationComponent/topNavbar";
+import TopNavbar from "../components/ui/navigationComponent/topNavbar";
 import styles from "./layout.module.css";
-import "./globals.css";
+import "../globals.css";
 
 export const metadata: Metadata = {
   title: "Crowdly",

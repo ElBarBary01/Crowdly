@@ -12,9 +12,9 @@ import Stage, {
 import "./preview.css";
 
 const VENUE_OPTIONS: ReadonlyArray<{ type: StageType; label: string }> = [
-  { type: "theater", label: "Modern theater" },
-  { type: "concert stage", label: "Concert stage" },
-  { type: "stadium", label: "Stadium" },
+  { type: "THEATER", label: "Modern theater" },
+  { type: "CONCERT_STAGE", label: "Concert stage" },
+  { type: "STADIUM", label: "Stadium" },
 ];
 
 const TICKET_CATEGORIES = {
@@ -56,7 +56,7 @@ function section(
 }
 
 const PREVIEW_SECTIONS = {
-  theater: [
+  THEATER: [
     section(
       "theater-1",
       "Orchestra Left",
@@ -88,7 +88,7 @@ const PREVIEW_SECTIONS = {
       "Upper level",
     ),
   ],
-  "concert stage": [
+  CONCERT_STAGE: [
     section(
       "concert-1",
       "Front Pit",
@@ -128,25 +128,15 @@ const PREVIEW_SECTIONS = {
       "Upper level",
     ),
   ],
-  stadium: [
-    section(
-      "stadium-1",
-      "North Stand",
-      TICKET_CATEGORIES.vip,
-      "Lower level",
-    ),
+  STADIUM: [
+    section("stadium-1", "North Stand", TICKET_CATEGORIES.vip, "Lower level"),
     section(
       "stadium-2",
       "North East Corner",
       TICKET_CATEGORIES.generalAdmission,
       "Lower level",
     ),
-    section(
-      "stadium-3",
-      "East Stand",
-      TICKET_CATEGORIES.vip,
-      "Lower level",
-    ),
+    section("stadium-3", "East Stand", TICKET_CATEGORIES.vip, "Lower level"),
     section(
       "stadium-4",
       "South East Corner",
@@ -193,7 +183,7 @@ const formatTicketType: TicketTypeFormatter = (ticketType) =>
   TICKET_TYPE_LABELS[ticketType];
 
 export default function StagePreviewPage() {
-  const [stageType, setStageType] = useState<StageType>("theater");
+  const [stageType, setStageType] = useState<StageType>("THEATER");
   const sections = PREVIEW_SECTIONS[stageType];
 
   return (

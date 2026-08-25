@@ -73,7 +73,7 @@ export default function Stage({
     <section
       className={classNames(
         "stage-map",
-        `stage-map--${stageType.replace(" ", "-")}`,
+        `stage-map--${stageType.toLowerCase().replace(/_/g, "-")}`,
         className,
       )}
       aria-label={ariaLabel ?? labels.map}

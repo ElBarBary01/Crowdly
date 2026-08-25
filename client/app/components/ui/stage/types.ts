@@ -1,6 +1,7 @@
 import type { TooltipPosition } from "../feedbackComponents/tooltip";
 
-export type StageType = "theater" | "concert stage" | "stadium";
+/** Mirrors the StageType enum stored on the Prisma Venue model. */
+export type StageType = "THEATER" | "CONCERT_STAGE" | "STADIUM";
 
 export interface Point {
   x: number;

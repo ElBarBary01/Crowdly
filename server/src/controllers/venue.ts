@@ -6,7 +6,11 @@ import {
   updateVenue,
   deleteVenue,
 } from "../service/venue";
-import { CreateVenueDto, UpdateVenueDto } from "../types/venue";
+import {
+  CreateVenueDto,
+  isStageType,
+  UpdateVenueDto,
+} from "../types/venue";
 
 const getVenuesHandler = async (_req: Request, res: Response) => {
   try {
@@ -49,12 +53,14 @@ const createVenueHandler = async (req: Request, res: Response) => {
     if (
       !dto.name ||
       !dto.location ||
+      !isStageType(dto.stageType) ||
       dto.capacity === undefined ||
       dto.capacity === null
     ) {
       return res.status(400).json({
         success: false,
-        message: "Name, location, and capacity are required",
+        message:
+          "Name, location, capacity, and a valid stageType are required",
       });
     }
 
@@ -75,6 +81,13 @@ const updateVenueHandler = async (req: Request, res: Response) => {
         .json({ success: false, message: "Valid Venue ID is required" });
     }
     const dto: UpdateVenueDto = req.body;
+
+    if (dto.stageType !== undefined && !isStageType(dto.stageType)) {
+      return res.status(400).json({
+        success: false,
+        message: "stageType must be THEATER, CONCERT_STAGE, or STADIUM",
+      });
+    }
 
     const venue = await updateVenue(id, dto);
 

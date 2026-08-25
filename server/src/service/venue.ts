@@ -4,6 +4,7 @@ import { CreateVenueDto, UpdateVenueDto } from "../types/venue";
 export async function createVenue(dto: CreateVenueDto) {
   const {
     name,
+    stageType,
     description,
     capacity,
     location,
@@ -15,6 +16,7 @@ export async function createVenue(dto: CreateVenueDto) {
   return prisma.venue.create({
     data: {
       name,
+      stageType,
       description,
       capacity,
       location,

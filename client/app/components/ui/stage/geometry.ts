@@ -22,7 +22,7 @@ function normalizeCoordinate(value: number): number {
 }
 
 const DEFAULT_VENUE_LAYOUTS: Record<StageType, VenueLayout> = {
-  theater: {
+  THEATER: {
     width: 1000,
     height: 780,
     stage: {
@@ -34,7 +34,7 @@ const DEFAULT_VENUE_LAYOUTS: Record<StageType, VenueLayout> = {
     },
     focalPoint: { x: 500, y: 138 },
   },
-  "concert stage": {
+  CONCERT_STAGE: {
     width: 1000,
     height: 820,
     stage: {
@@ -53,7 +53,7 @@ const DEFAULT_VENUE_LAYOUTS: Record<StageType, VenueLayout> = {
     },
     focalPoint: { x: 500, y: 124 },
   },
-  stadium: {
+  STADIUM: {
     width: 1100,
     height: 800,
     stage: {
@@ -231,9 +231,9 @@ export function resolveSections(
     ...section,
     layout:
       sectionLayouts?.[section.id] ??
-      (stageType === "theater"
+      (stageType === "THEATER"
         ? theaterAutoLayout(index, sections.length, venue)
-        : stageType === "concert stage"
+        : stageType === "CONCERT_STAGE"
           ? concertAutoLayout(index, sections.length, venue)
           : stadiumAutoLayout(index, sections.length, venue)),
     colorTone: toneFromSection(section),

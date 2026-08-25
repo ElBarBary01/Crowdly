@@ -289,10 +289,10 @@ function StadiumArchitecture({
 }
 
 function VenueArchitecture(props: VenueArchitectureProps) {
-  if (props.stageType === "theater") {
+  if (props.stageType === "THEATER") {
     return <TheaterArchitecture {...props} />;
   }
-  if (props.stageType === "concert stage") {
+  if (props.stageType === "CONCERT_STAGE") {
     return <ConcertArchitecture {...props} />;
   }
   return <StadiumArchitecture {...props} />;

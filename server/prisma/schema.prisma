@@ -22,6 +22,12 @@ enum TicketType {
   VIP_MEET_GREET
 }
 
+enum StageType {
+  THEATER
+  CONCERT_STAGE
+  STADIUM
+}
+
 enum Genre {
   ROCK
   POP
@@ -92,6 +98,7 @@ model User {
 model Venue {
   id          String   @id @default(uuid()) @map("_id")
   name        String
+  stageType   StageType @default(THEATER)
   description String?
   capacity    Int
   location    String

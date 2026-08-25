@@ -2,7 +2,6 @@
 import type { Metadata } from "next";
 import styles from "./layout.module.css";
 import "./globals.css";
-import Footer from "./components/ui/footerComponent";
 
 export const metadata: Metadata = {
   title: "Crowdly",
@@ -18,7 +17,6 @@ export default function RootLayout({
     <html lang="en">
       <body className={styles.shell}>
         <main className={styles.main}>{children}</main>
-        <Footer />
       </body>
     </html>
   );

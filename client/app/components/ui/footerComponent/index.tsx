@@ -42,22 +42,13 @@ const legalLinks = [
 export default function Footer() {
   return (
     <footer className={styles.footer}>
-      <div className={styles.newsletter}>
-        <h2 className={styles.newsletterTitle}>Never miss a show</h2>
-        <p className={styles.newsletterSubtitle}>
-          Get early access to presales and exclusive event announcements.
-        </p>
-      </div>
-
-      <hr className={styles.divider} />
-
       <div className={styles.main}>
         <div className={styles.brand}>
           <Link className={styles.brandLink} href="/" aria-label="Crowdly home">
             <span className={styles.mark} aria-hidden="true">
-              S
+              C
             </span>
-            <span className={styles.wordmark}>STAGEFRONT</span>
+            <span className={styles.wordmark}>Crowdly</span>
           </Link>
           <p className={styles.tagline}>
             The premier destination for live music tickets. Discover,

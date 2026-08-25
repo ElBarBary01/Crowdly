@@ -1,6 +1,10 @@
 import "dotenv/config";
 import express, { Request, Response, Application } from "express";
 import userRoutes from "./routes/user";
+import venueRoutes from "./routes/venue";
+import artistRoutes from "./routes/artist";
+import eventRoutes from "./routes/event";
+import orderRoutes from "./routes/order";
 import authRoutes from "./routes/auth.routes";
 import { requireAuth } from "./middleware/auth.middleware";
 import cookieParser from "cookie-parser";
@@ -21,7 +25,12 @@ app.use(cookieParser());
 app.use("/auth", authRoutes);
 app.use(requireAuth);
 
+// Routes
 app.use("/user", userRoutes);
+app.use("/venue", venueRoutes);
+app.use("/artist", artistRoutes);
+app.use("/event", eventRoutes);
+app.use("/order", orderRoutes);
 
 app.get("/", (req: Request, res: Response) => {
   res.json({ message: "Hello from typed Express!" });

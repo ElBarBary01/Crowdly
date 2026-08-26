@@ -4,7 +4,21 @@ import { Button } from "../Button";
 import { Avatar } from "../Avatar";
 
 export { Badge, Button, Avatar };
+export type CardType = "event" | "order" | "artist";
 
+export interface CardProps {
+    type?: CardType;
+    children: React.ReactNode;
+    className?: string;
+}
+
+export const Card: React.FC<CardProps> = ({ type, children, className = "" }) => {
+    return (
+        <div className={`card card-${type} ${className}`}>
+        {children}
+        </div>
+    );
+};
 export const CardImage: React.FC<{ src: string; alt: string; children?: React.ReactNode }> = ({
   src,
   alt,

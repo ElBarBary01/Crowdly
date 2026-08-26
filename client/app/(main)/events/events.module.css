@@ -1,0 +1,120 @@
+/* =========================
+   Whole page
+========================= */
+
+.page {
+  min-height: 100vh;
+  padding: 32px;
+  background-color: #0d0d0f;
+  color: white;
+}
+
+/* =========================
+   Heading
+========================= */
+
+.heading {
+  margin-bottom: 24px;
+}
+
+.heading h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.heading p {
+  margin-top: 6px;
+  color: #888;
+  font-size: 14px;
+}
+
+/* =========================
+   Filter + Sort buttons
+========================= */
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.filterButton {
+  padding: 10px 16px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background-color: #17171a;
+  color: white;
+  cursor: pointer;
+}
+
+.filterButton:hover {
+  background-color: #222228;
+}
+
+.sortSelect {
+  padding: 10px 14px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background-color: #17171a;
+  color: white;
+  cursor: pointer;
+}
+
+/* =========================
+   Filter section
+========================= */
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  margin-bottom: 24px;
+  padding: 16px;
+
+  border: 1px solid #333;
+  border-radius: 10px;
+
+  background-color: #17171a;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filterLabel {
+  color: #aaa;
+  font-size: 14px;
+}
+
+.genreSelect {
+  padding: 9px 12px;
+  border: 1px solid #333;
+  border-radius: 7px;
+
+  background-color: #0d0d0f;
+  color: white;
+
+  cursor: pointer;
+}
+
+.clearButton {
+  padding: 9px 14px;
+
+  border: 1px solid #333;
+  border-radius: 7px;
+
+  background-color: transparent;
+  color: #aaa;
+
+  cursor: pointer;
+}
+
+.clearButton:hover {
+  background-color: #222228;
+  color: white;
+}

@@ -6,15 +6,30 @@ import {
   updateEvent,
   deleteEvent,
 } from "../service/event";
-import { CreateEventDto, UpdateEventDto } from "../types/event";
+import { CreateEventDto, UpdateEventDto, GetEventsQuery } from "../types/event";
 
-const getEventsHandler = async (_req: Request, res: Response) => {
+const getEventsHandler = async (req: Request, res: Response) => {
   try {
-    const events = await getEvents();
-    res.status(200).json({ success: true, count: events.length, data: events });
+    const query: GetEventsQuery = {
+      sort: req.query.sort as GetEventsQuery["sort"],
+      order: req.query.order as GetEventsQuery["order"],
+      genre: req.query.genre as string,
+      venueId: req.query.venueId as string,
+    };
+
+    const events = await getEvents(query);
+
+    res.status(200).json({
+      success: true,
+      count: events.length,
+      data: events,
+    });
   } catch (error) {
     console.error("Error fetching events:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch events" });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch events",
+    });
   }
 };
 

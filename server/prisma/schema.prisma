@@ -141,6 +141,7 @@ model Event {
   venueId   String
   venue     Venue        @relation("VenueEvents", fields: [venueId], references: [id])
   tickets   Ticket[]
+  images    String[]
 
   @@unique([venueId, date, time])
 }

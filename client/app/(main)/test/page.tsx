@@ -4,6 +4,7 @@ import "./styles.css";
 import { useState } from "react";
 import ToggleSwitch from "../../components/ui/ToggleSwitch/ToggleSwitch";
 import Checkbox from "../../components/ui/Checkbox/Checkbox";
+import BrowseByGenre from "@/app/components/home/BrowseByGenre/BrowseByGenre";
 
 export default function TestPage() {
   const [isToggleOn, setIsToggleOn] = useState(false);
@@ -21,20 +22,9 @@ export default function TestPage() {
 
   return (
     <main className="container">
-      <Checkbox
-        label="I agree to the terms and conditions"
-        checked={isChecked}
-        onChange={handleCheckboxChange}
-      />
+      <BrowseByGenre>
+      </BrowseByGenre>
 
-      <p>Checkbox: {isChecked ? "Checked" : "Not checked"}</p>
-
-      <Checkbox
-        label="Disabled checkbox"
-        checked={false}
-        onChange={() => {}}
-        disabled
-      />
     </main>
   );
 }

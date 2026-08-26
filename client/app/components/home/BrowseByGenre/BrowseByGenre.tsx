@@ -1,6 +1,6 @@
 import React from "react";
-import LinkButton from "../../LinkButton/LinkButton";
-import "./browse_by_genre.css";
+import LinkButton from "../../ui/LinkButton/LinkButton";
+import "./BrwoseByGenre.css";
 
 const GENRES = [
   { id: "rock", emoji: "🎸", title: "Rock", shows: 142 },

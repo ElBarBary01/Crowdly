@@ -4,6 +4,8 @@
 
 .page {
   min-height: 100vh;
+  flex-direction: column;
+  display: flex;
   padding: 32px;
   background-color: #0d0d0f;
   color: white;
@@ -117,4 +119,16 @@
 .clearButton:hover {
   background-color: #222228;
   color: white;
+}
+
+.paginationContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 40px;
+  margin-bottom: 30px;
+}
+
+.paginationContainer > nav {
+  width: fit-content;
 }

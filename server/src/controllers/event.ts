@@ -15,14 +15,20 @@ const getEventsHandler = async (req: Request, res: Response) => {
       order: req.query.order as GetEventsQuery["order"],
       genre: req.query.genre as string,
       venueId: req.query.venueId as string,
+      page: Number(req.query.page) || 1,
+      limit: Number(req.query.limit) || 6,
     };
 
-    const events = await getEvents(query);
+    const result = await getEvents(query);
 
     res.status(200).json({
       success: true,
-      count: events.length,
-      data: events,
+      count: result.events.length,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
+      data: result.events,
     });
   } catch (error) {
     console.error("Error fetching events:", error);

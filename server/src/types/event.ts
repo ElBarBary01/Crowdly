@@ -37,4 +37,6 @@ export type GetEventsQuery = {
   order?: "asc" | "desc";
   genre?: string;
   venueId?: string;
+  page?: number;
+  limit?: number;
 };

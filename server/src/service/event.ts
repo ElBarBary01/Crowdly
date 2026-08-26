@@ -31,34 +31,54 @@ export async function createEvent(dto: CreateEventDto) {
     },
   });
 }
-
 export async function getEvents(query: GetEventsQuery = {}) {
-  const { sort, order, genre, venueId } = query;
+  const { sort, order, genre, venueId, page = 1, limit = 6 } = query;
 
-  return prisma.event.findMany({
-    where: {
-      ...(genre && {
-        genres: {
-          has: genre.toUpperCase() as GenreEnum,
-        },
-      }),
+  const skip = (page - 1) * limit;
 
-      ...(venueId && {
-        venueId,
-      }),
-    },
+  const where = {
+    ...(genre && {
+      genres: {
+        has: genre.toUpperCase() as GenreEnum,
+      },
+    }),
 
-    orderBy: sort
-      ? {
-          [sort]: order || "asc",
-        }
-      : undefined,
+    ...(venueId && {
+      venueId,
+    }),
+  };
 
-    include: {
-      venue: true,
-      artists: { include: { artist: true } },
-    },
-  });
+  const [events, total] = await Promise.all([
+    prisma.event.findMany({
+      where,
+
+      orderBy: sort
+        ? {
+            [sort]: order || "asc",
+          }
+        : undefined,
+
+      skip,
+      take: limit,
+
+      include: {
+        venue: true,
+        artists: { include: { artist: true } },
+      },
+    }),
+
+    prisma.event.count({
+      where,
+    }),
+  ]);
+
+  return {
+    events,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function getEventById(id: string) {

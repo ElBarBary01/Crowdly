@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./events.module.css";
+import Pagination from "../../components/ui/navigationComponent/pagination";
 
 type Event = {
   id: string;
@@ -25,10 +26,12 @@ const EventsPage = () => {
   const [showFilters, setShowFilters] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
-
+  const pageSize = 6;
   const sort = searchParams.get("sort") || "";
   const order = searchParams.get("order") || "asc";
   const genre = searchParams.get("genre") || "";
+  const page = Number(searchParams.get("page")) || 1;
+  const [totalPages, setTotalPages] = useState(1);
 
   const sortValue = sort ? `${sort}-${order}` : "relevance";
 
@@ -46,8 +49,8 @@ const EventsPage = () => {
           params.append("genre", genre);
         }
 
+        params.append("page", page.toString());
         const queryString = params.toString();
-
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/event${
             queryString ? `?${queryString}` : ""
@@ -64,6 +67,7 @@ const EventsPage = () => {
         const result = await response.json();
 
         setEvents(result.data);
+        setTotalPages(result.totalPages);
 
         // Log the actual filter/sort being used
         console.log("================================");
@@ -86,7 +90,7 @@ const EventsPage = () => {
     };
 
     fetchEvents();
-  }, [sort, order, genre]);
+  }, [sort, order, genre, page]);
 
   const handleSortChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -128,6 +132,13 @@ const EventsPage = () => {
     } else {
       params.delete("genre");
     }
+
+    router.push(`?${params.toString()}`);
+  };
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    params.set("page", newPage.toString());
 
     router.push(`?${params.toString()}`);
   };
@@ -216,6 +227,13 @@ const EventsPage = () => {
         </div>
       )}
       {/* Event Grid */}
+      <div className={styles.paginationContainer}>
+        <Pagination
+          defaultPage={page}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      </div>
     </div>
   );
 };

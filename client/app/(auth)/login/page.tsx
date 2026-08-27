@@ -8,7 +8,7 @@ import { Card, CardContent } from "../../components/ui/card/card";
 import VerifyPopup from "../../components/ui/VerifyPopup";
 import "./login.css";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

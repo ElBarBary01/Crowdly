@@ -32,3 +32,11 @@ export type UpdateEventDto = {
   artistsIds?: string[];
   tickets?: CreateEventTicket[];
 };
+export type GetEventsQuery = {
+  sort?: "date" | "title";
+  order?: "asc" | "desc";
+  genre?: string;
+  venueId?: string;
+  page?: number;
+  limit?: number;
+};

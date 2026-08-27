@@ -55,7 +55,7 @@ export default function EventCard({
             <Button
               variant="ghost-accent"
               size="sm"
-              onClick={() => router.push(`/events/${eventId}`)}
+              onClick={() => router.push(`/event/${eventId}`)}
             >
               {buttonLabel}
             </Button>

@@ -2,9 +2,10 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import InputField from "../components/ui/InputField/InputField";
-import Button from "../components/ui/Button/Button";
-import { Card, CardContent } from "../components/ui/card/card";
+import InputField from "../../components/ui/InputField";
+import Button from "../../components/ui/Button";
+import { Card, CardContent } from "../../components/ui/card/card";
+import VerifyPopup from "../../components/ui/VerifyPopup";
 import "./login.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -21,6 +22,8 @@ export default function LoginPage() {
   );
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showVerifyPopup, setShowVerifyPopup] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
 
   function validate() {
     let valid = true;
@@ -65,6 +68,12 @@ export default function LoginPage() {
 
       const data = await res.json();
 
+      if (data.requiresVerification) {
+        setVerificationEmail(data.email || email);
+        setShowVerifyPopup(true);
+        return;
+      }
+
       if (!res.ok) {
         setFormError(data.error || "Something went wrong");
         return;
@@ -80,6 +89,14 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
+      {showVerifyPopup && (
+        <VerifyPopup
+          email={verificationEmail}
+          onClose={() => setShowVerifyPopup(false)}
+          onVerified={() => router.push("/")}
+        />
+      )}
+
       <Card className="login-card">
         <CardContent className="login-card-content">
           <div className="login-brand">

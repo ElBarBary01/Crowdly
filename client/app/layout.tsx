@@ -1,6 +1,5 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import TopNavbar from "./components/ui/navigationComponent/topNavbar";
 import styles from "./layout.module.css";
 import "./globals.css";
 
@@ -17,7 +16,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={styles.shell}>
-        <TopNavbar />
         <main className={styles.main}>{children}</main>
       </body>
     </html>

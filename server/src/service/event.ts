@@ -1,13 +1,78 @@
 import prisma from "../lib/prisma";
-import { CreateEventDto, UpdateEventDto, GetEventsQuery } from "../types/event";
+import {
+  CreateEventDto,
+  type EventTicketInput,
+  getTicketsLeft,
+  UpdateEventDto,
+  GetEventsQuery,
+} from "../types/event";
 import {
   Genre as GenreEnum,
   TicketType as TicketTypeEnum,
 } from "../../generated/prisma/enums";
 
+export class InvalidEventConfigurationError extends Error {}
+
+function addTicketsLeft<
+  T extends {
+    tickets: readonly { quantity: number }[];
+    venue: object;
+  },
+>(event: T) {
+  const ticketsLeft = getTicketsLeft(event.tickets);
+  return {
+    ...event,
+    venue: {
+      ...event.venue,
+      ticketsLeft,
+    },
+  };
+}
+
+async function validateTicketConfigurationForVenue(
+  venueId: string,
+  tickets: readonly EventTicketInput[],
+) {
+  const venue = await prisma.venue.findUnique({
+    where: { id: venueId },
+    select: {
+      capacity: true,
+      stageSections: true,
+    },
+  });
+
+  if (!venue) {
+    throw new InvalidEventConfigurationError("Venue not found");
+  }
+
+  const ticketsLeft = getTicketsLeft(tickets);
+  if (ticketsLeft > venue.capacity) {
+    throw new InvalidEventConfigurationError(
+      `Ticket quantity (${ticketsLeft}) cannot exceed venue capacity (${venue.capacity})`,
+    );
+  }
+
+  const configuredTicketTypes = new Set(tickets.map((ticket) => ticket.type));
+  const missingTicketTypes = Array.from(
+    new Set(
+      venue.stageSections
+        .map((section) => section.ticketType)
+        .filter((ticketType) => !configuredTicketTypes.has(ticketType)),
+    ),
+  );
+
+  if (missingTicketTypes.length > 0) {
+    throw new InvalidEventConfigurationError(
+      `Event tickets are missing categories used by venue sections: ${missingTicketTypes.join(", ")}`,
+    );
+  }
+}
+
 export async function createEvent(dto: CreateEventDto) {
   const { title, date, time, genres, venueId, artistsIds, tickets } = dto;
-  return prisma.event.create({
+  await validateTicketConfigurationForVenue(venueId, tickets);
+
+  const event = await prisma.event.create({
     data: {
       title,
       date: new Date(date),
@@ -23,6 +88,7 @@ export async function createEvent(dto: CreateEventDto) {
         type: t.type.toUpperCase() as unknown as TicketTypeEnum,
         price: t.price,
         quantity: t.quantity,
+        description: t.description ?? null,
       })),
     },
     include: {
@@ -30,6 +96,8 @@ export async function createEvent(dto: CreateEventDto) {
       artists: { include: { artist: true } },
     },
   });
+
+  return addTicketsLeft(event);
 }
 export async function getEvents(query: GetEventsQuery = {}) {
   const { sort, order, genre, venueId, page = 1, limit = 6 } = query;
@@ -82,13 +150,15 @@ export async function getEvents(query: GetEventsQuery = {}) {
 }
 
 export async function getEventById(id: string) {
-  return prisma.event.findUnique({
+  const event = await prisma.event.findUnique({
     where: { id },
     include: {
       venue: true,
       artists: { include: { artist: true } },
     },
   });
+
+  return event ? addTicketsLeft(event) : null;
 }
 
 // Update an existing event by ID (partial update with nested relations).
@@ -96,6 +166,23 @@ export async function getEventById(id: string) {
 export async function updateEvent(id: string, dto: UpdateEventDto) {
   const { venueId, artistsIds, ...rest } = dto;
   const data: any = {};
+
+  if (venueId !== undefined || dto.tickets !== undefined) {
+    const currentEvent = await prisma.event.findUnique({
+      where: { id },
+      select: {
+        venueId: true,
+        tickets: true,
+      },
+    });
+
+    if (!currentEvent) return null;
+
+    await validateTicketConfigurationForVenue(
+      venueId ?? currentEvent.venueId,
+      dto.tickets ?? currentEvent.tickets,
+    );
+  }
 
   // Spread updatable scalar fields
   if (rest.title !== undefined) data.title = rest.title;
@@ -127,10 +214,11 @@ export async function updateEvent(id: string, dto: UpdateEventDto) {
       type: t.type.toUpperCase() as unknown as TicketTypeEnum,
       price: t.price,
       quantity: t.quantity,
+      description: t.description ?? null,
     }));
   }
 
-  return prisma.event.update({
+  const event = await prisma.event.update({
     where: { id },
     data,
     include: {
@@ -138,6 +226,8 @@ export async function updateEvent(id: string, dto: UpdateEventDto) {
       artists: { include: { artist: true } },
     },
   });
+
+  return addTicketsLeft(event);
 }
 
 // Delete an event by ID (cascades EventArtist bridge records).

@@ -22,6 +22,12 @@ enum TicketType {
   VIP_MEET_GREET
 }
 
+enum StageType {
+  THEATER
+  CONCERT_STAGE
+  STADIUM
+}
+
 enum Genre {
   ROCK
   POP
@@ -50,6 +56,14 @@ type Ticket {
   price       Float
   quantity    Int
   description String?
+}
+
+// Reusable seating layout stored on Venue; pricing and availability stay on Event.
+type StageSection {
+  id         String
+  name       String
+  ticketType TicketType
+  level      String?
 }
 
 // OrderTicket (per-ticket-line item inside an order)
@@ -96,6 +110,8 @@ model User {
 model Venue {
   id          String   @id @default(uuid()) @map("_id")
   name        String
+  stageType   StageType @default(THEATER)
+  stageSections StageSection[]
   description String?
   capacity    Int
   location    String

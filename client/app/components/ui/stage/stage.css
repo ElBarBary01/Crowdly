@@ -1,0 +1,496 @@
+/* ==========================================================================
+   Reusable venue seating map
+   ========================================================================== */
+
+.stage-map {
+  --stage-map-tone-0: var(--color-purple);
+  --stage-map-tone-1: var(--color-neon-pink);
+  --stage-map-tone-2: #27b7d6;
+  --stage-map-tone-3: var(--color-success);
+  --stage-map-tone-4: var(--color-warning);
+  --stage-map-tone-5: #6673e8;
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+.stage-map *,
+.stage-map *::before,
+.stage-map *::after {
+  box-sizing: border-box;
+}
+
+.stage-map__availability {
+  display: flex;
+  min-width: 0;
+  padding-inline: var(--space-1);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.stage-map__availability span:last-child {
+  color: var(--color-success);
+}
+
+.stage-map__viewport {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(139, 92, 246, 0.1), transparent 34%),
+    var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.025),
+    var(--shadow-md);
+}
+
+.stage-map__viewport::before {
+  position: absolute;
+  z-index: 0;
+  inset: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.025);
+  border-radius: calc(var(--radius-2xl) - 5px);
+  content: "";
+  pointer-events: none;
+}
+
+.stage-map__canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 260px;
+  overflow: visible;
+  border-radius: inherit;
+  touch-action: manipulation;
+}
+
+.stage-map__floor {
+  stroke: rgba(255, 255, 255, 0.035);
+  stroke-width: 1;
+}
+
+.stage-map__ambient-stop--start {
+  stop-color: #17171c;
+}
+
+.stage-map__ambient-stop--end {
+  stop-color: #0e0e11;
+}
+
+.stage-map__deck-pattern-base {
+  fill: #222229;
+}
+
+.stage-map__deck-pattern-line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.045);
+  stroke-width: 1;
+}
+
+.stage-map__field-pattern-a {
+  fill: #173a32;
+}
+
+.stage-map__field-pattern-b {
+  fill: #1a4238;
+}
+
+/* Venue architecture ------------------------------------------------------ */
+
+.stage-map__architecture {
+  pointer-events: none;
+}
+
+.stage-map__stage-shadow,
+.stage-map__stage-extension-shadow,
+.stage-map__field-shadow {
+  fill: rgba(0, 0, 0, 0.55);
+  filter: blur(5px);
+}
+
+.stage-map__stage-surface,
+.stage-map__stage-extension {
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 2;
+}
+
+.stage-map__stage-label,
+.stage-map__field-label {
+  fill: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  paint-order: stroke;
+  stroke: rgba(13, 13, 15, 0.88);
+  stroke-width: 4px;
+}
+
+.stage-map__theater-shell {
+  fill: rgba(255, 255, 255, 0.012);
+  stroke: rgba(255, 255, 255, 0.075);
+  stroke-width: 2;
+  stroke-dasharray: 3 8;
+}
+
+.stage-map__proscenium {
+  fill: none;
+  stroke: rgba(167, 139, 250, 0.55);
+  stroke-width: 8;
+  stroke-linecap: round;
+  filter: drop-shadow(0 3px 8px rgba(139, 92, 246, 0.2));
+}
+
+.stage-map__curtain {
+  fill: none;
+  stroke: rgba(255, 45, 117, 0.48);
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+
+.stage-map__stage-centerline,
+.stage-map__extension-centerline {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+}
+
+.stage-map__egress-lines line {
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 14;
+  stroke-linecap: round;
+  stroke-dasharray: 1 18;
+}
+
+.stage-map__stage-truss {
+  fill: #303039;
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 1;
+}
+
+.stage-map__stage-light {
+  fill: var(--color-purple-light);
+  filter: drop-shadow(0 0 7px rgba(167, 139, 250, 0.85));
+}
+
+.stage-map__speaker-array rect {
+  fill: #09090b;
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 1;
+  stroke-dasharray: 5 3;
+}
+
+.stage-map__stage-extension {
+  stroke: rgba(167, 139, 250, 0.34);
+}
+
+.stage-map__security-line {
+  fill: none;
+  stroke: rgba(245, 158, 11, 0.32);
+  stroke-width: 3;
+  stroke-dasharray: 8 10;
+}
+
+.stage-map__stadium-concourse {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.stage-map__stadium-concourse--outer {
+  stroke: rgba(255, 255, 255, 0.045);
+  stroke-width: 28;
+  stroke-dasharray: 2 15;
+}
+
+.stage-map__stadium-concourse--inner {
+  stroke: rgba(255, 255, 255, 0.065);
+  stroke-width: 22;
+  stroke-dasharray: 22 10;
+}
+
+.stage-map__field {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 2;
+}
+
+.stage-map__field-marking {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.33);
+  stroke-width: 2;
+}
+
+.stage-map__stadium-tunnels path {
+  fill: #08080a;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 2;
+}
+
+/* Seating sections -------------------------------------------------------- */
+
+.stage-map__section {
+  outline: none;
+}
+
+.stage-map__section--tone-0 {
+  color: var(--stage-map-tone-0);
+}
+
+.stage-map__section--tone-1 {
+  color: var(--stage-map-tone-1);
+}
+
+.stage-map__section--tone-2 {
+  color: var(--stage-map-tone-2);
+}
+
+.stage-map__section--tone-3 {
+  color: var(--stage-map-tone-3);
+}
+
+.stage-map__section--tone-4 {
+  color: var(--stage-map-tone-4);
+}
+
+.stage-map__section--tone-5 {
+  color: var(--stage-map-tone-5);
+}
+
+[class*="stage-map__section--tone-"] {
+  --stage-map-section-fill: color-mix(
+    in srgb,
+    currentColor 14%,
+    rgba(20, 20, 24, 0.9)
+  );
+  --stage-map-section-stroke: color-mix(
+    in srgb,
+    currentColor 58%,
+    rgba(255, 255, 255, 0.08)
+  );
+}
+
+.stage-map__section-shadow {
+  fill: rgba(0, 0, 0, 0.42);
+  stroke: none;
+  transform: translateY(5px);
+  filter: blur(5px);
+}
+
+.stage-map__section-boundary {
+  fill: var(--stage-map-section-fill);
+  stroke: var(--stage-map-section-stroke);
+  stroke-width: 1.5;
+}
+
+.stage-map__section-texture {
+  fill: transparent;
+  stroke: currentColor;
+  stroke-width: 9;
+  stroke-dasharray: 1 15;
+  stroke-opacity: 0.16;
+  pointer-events: none;
+}
+
+.stage-map__section-label {
+  pointer-events: none;
+}
+
+.stage-map__section-name,
+.stage-map__section-level {
+  fill: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.025em;
+  paint-order: stroke;
+  stroke: rgba(13, 13, 15, 0.92);
+  stroke-linejoin: round;
+  stroke-width: 3px;
+}
+
+.stage-map__section-level {
+  fill: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Existing Tooltip integration ------------------------------------------- */
+
+.stage-map__tooltip-layer {
+  pointer-events: none;
+}
+
+.stage-map__section-hover {
+  fill: currentColor;
+  fill-opacity: 0.22;
+  stroke: color-mix(in srgb, currentColor 90%, white 10%);
+  stroke-width: 2.5;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stage-map__tooltip-item:hover .stage-map__section-hover,
+.stage-map__tooltip-item:focus-within .stage-map__section-hover {
+  opacity: 1;
+}
+
+.stage-map__tooltip-region {
+  overflow: visible;
+  pointer-events: none;
+}
+
+.stage-map__tooltip-anchor {
+  position: relative;
+  z-index: 10000;
+  isolation: isolate;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+.stage-map__tooltip-anchor > [role="tooltip"] {
+  z-index: 10001;
+}
+
+.stage-map__tooltip-hit-area {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: help;
+  opacity: 0;
+}
+
+.stage-map__tooltip-content {
+  display: flex;
+  min-width: max-content;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+
+.stage-map__tooltip-section-name,
+.stage-map__tooltip-price,
+.stage-map__tooltip-availability {
+  white-space: nowrap;
+}
+
+.stage-map__tooltip-section-name {
+  color: var(--color-text);
+}
+
+.stage-map__tooltip-category {
+  color: var(--color-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.stage-map__tooltip-price {
+  color: var(--color-purple-light);
+}
+
+.stage-map__tooltip-availability {
+  color: var(--color-success);
+  font-size: 11px;
+}
+
+/* Compact section legend ------------------------------------------------- */
+
+.stage-map__category-legend {
+  display: flex;
+  min-width: 0;
+  padding-inline: var(--space-1);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  color: var(--color-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.stage-map__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.stage-map__legend-price {
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+.stage-map__legend-swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  background: var(--stage-map-section-fill);
+  border: 1px solid var(--stage-map-section-stroke);
+  border-radius: 3px;
+}
+
+@media (max-width: 800px) {
+  .stage-map {
+    gap: var(--space-3);
+  }
+
+  .stage-map__viewport {
+    overflow-x: auto;
+    overflow-y: visible;
+    border-radius: var(--radius-xl);
+    scrollbar-color: var(--color-border) transparent;
+    scrollbar-width: thin;
+  }
+
+  .stage-map__canvas {
+    width: max(100%, 720px);
+  }
+
+}
+
+@media (max-width: 520px) {
+  .stage-map__canvas {
+    width: max(100%, 620px);
+    min-height: 230px;
+  }
+
+  .stage-map__category-legend {
+    padding-inline: 0;
+    gap: 6px var(--space-2);
+    font-size: 10px;
+  }
+
+  .stage-map__availability {
+    padding-inline: 0;
+    font-size: 11px;
+  }
+}
+
+@media (forced-colors: active) {
+  .stage-map__section-boundary,
+  .stage-map__stage-surface,
+  .stage-map__field {
+    fill: Canvas;
+    stroke: CanvasText;
+  }
+}

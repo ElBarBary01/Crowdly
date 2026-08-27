@@ -4,8 +4,12 @@ import {
   type EventTicketInput,
   getTicketsLeft,
   UpdateEventDto,
+  GetEventsQuery,
 } from "../types/event";
-import { Genre as GenreEnum, TicketType as TicketTypeEnum } from "../../generated/prisma/enums";
+import {
+  Genre as GenreEnum,
+  TicketType as TicketTypeEnum,
+} from "../../generated/prisma/enums";
 
 export class InvalidEventConfigurationError extends Error {}
 
@@ -95,16 +99,54 @@ export async function createEvent(dto: CreateEventDto) {
 
   return addTicketsLeft(event);
 }
+export async function getEvents(query: GetEventsQuery = {}) {
+  const { sort, order, genre, venueId, page = 1, limit = 6 } = query;
 
-export async function getEvents() {
-  const events = await prisma.event.findMany({
-    include: {
-      venue: true,
-      artists: { include: { artist: true } },
-    },
-  });
+  const skip = (page - 1) * limit;
 
-  return events.map(addTicketsLeft);
+  const where = {
+    ...(genre && {
+      genres: {
+        has: genre.toUpperCase() as GenreEnum,
+      },
+    }),
+
+    ...(venueId && {
+      venueId,
+    }),
+  };
+
+  const [events, total] = await Promise.all([
+    prisma.event.findMany({
+      where,
+
+      orderBy: sort
+        ? {
+            [sort]: order || "asc",
+          }
+        : undefined,
+
+      skip,
+      take: limit,
+
+      include: {
+        venue: true,
+        artists: { include: { artist: true } },
+      },
+    }),
+
+    prisma.event.count({
+      where,
+    }),
+  ]);
+
+  return {
+    events,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function getEventById(id: string) {
@@ -146,7 +188,10 @@ export async function updateEvent(id: string, dto: UpdateEventDto) {
   if (rest.title !== undefined) data.title = rest.title;
   if (rest.date !== undefined) data.date = new Date(rest.date);
   if (rest.time !== undefined) data.time = rest.time;
-  if (rest.genres !== undefined) data.genres = rest.genres.map((g) => g.toUpperCase() as unknown as GenreEnum);
+  if (rest.genres !== undefined)
+    data.genres = rest.genres.map(
+      (g) => g.toUpperCase() as unknown as GenreEnum,
+    );
 
   // Handle venue relation update
   if (venueId !== undefined) {

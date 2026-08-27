@@ -9,9 +9,11 @@ import {
   CardSubtext,
   CardTitle,
 } from "./CardComponent";
+import { useRouter } from "next/navigation";
 
 export interface EventCardProps {
-  imageSrc: string;
+  eventId?: string;
+  imageSrc?: string;
   imageAlt?: string;
   badgeText?: string;
   title: string;
@@ -23,6 +25,7 @@ export interface EventCardProps {
 }
 
 export default function EventCard({
+  eventId,
   imageSrc,
   imageAlt = "Event",
   badgeText = "R&B",
@@ -33,6 +36,7 @@ export default function EventCard({
   buttonLabel = "Get Tickets",
   className,
 }: EventCardProps) {
+  const router = useRouter();
   return (
     <Card type="event" className={className}>
       <CardImage src={imageSrc} alt={imageAlt}>
@@ -44,11 +48,15 @@ export default function EventCard({
           <CardSubtext>{date}</CardSubtext>
           <CardSubtext>{Venue}</CardSubtext>
         </div>
-          <CardSubtext>FROM</CardSubtext>  
+        <CardSubtext>FROM</CardSubtext>
         <CardRow>
           <CardPrice>{price}</CardPrice>
           {buttonLabel && (
-            <Button variant="ghost-accent" size="sm">
+            <Button
+              variant="ghost-accent"
+              size="sm"
+              onClick={() => router.push(`/events/${eventId}`)}
+            >
               {buttonLabel}
             </Button>
           )}

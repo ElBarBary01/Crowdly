@@ -1,6 +1,6 @@
 "use client";
 
-// import { Card, CardContent } from "../../components/ui/card/card";
+import EventCard from "../../components/ui/card/EventCard";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./events.module.css";
@@ -22,21 +22,23 @@ type Event = {
 };
 
 const EventsPage = () => {
+  const [totalEvents, setTotalEvents] = useState(0);
   const [events, setEvents] = useState<Event[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const pageSize = 6;
   const sort = searchParams.get("sort") || "";
   const order = searchParams.get("order") || "asc";
   const genre = searchParams.get("genre") || "";
   const page = Number(searchParams.get("page")) || 1;
   const [totalPages, setTotalPages] = useState(1);
-
   const sortValue = sort ? `${sort}-${order}` : "relevance";
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchEvents = async () => {
+      setLoading(true);
+
       try {
         const params = new URLSearchParams();
 
@@ -50,7 +52,9 @@ const EventsPage = () => {
         }
 
         params.append("page", page.toString());
+
         const queryString = params.toString();
+
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/event${
             queryString ? `?${queryString}` : ""
@@ -67,25 +71,12 @@ const EventsPage = () => {
         const result = await response.json();
 
         setEvents(result.data);
+        setTotalEvents(result.total);
         setTotalPages(result.totalPages);
-
-        // Log the actual filter/sort being used
-        console.log("================================");
-        console.log("EVENT FILTER / SORT");
-        console.log("Sort:", sort || "relevance");
-        console.log("Order:", order);
-        console.log("Genre:", genre || "all");
-        console.log(
-          "API URL:",
-          `${process.env.NEXT_PUBLIC_API_URL}/event${queryString ? `?${queryString}` : ""}`,
-        );
-
-        // Log the events returned by the backend
-        console.log("Events returned:", result.data);
-        console.log("Number of events:", result.data.length);
-        console.log("================================");
       } catch (error) {
         console.error("Error fetching events:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -94,6 +85,7 @@ const EventsPage = () => {
 
   const handleSortChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
+    params.set("page", "1");
 
     switch (value) {
       case "relevance":
@@ -126,6 +118,7 @@ const EventsPage = () => {
   };
   const handleGenreChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
+    params.set("page", "1");
 
     if (value) {
       params.set("genre", value);
@@ -144,11 +137,14 @@ const EventsPage = () => {
   };
 
   const getImageUrl = (image?: string) => {
-    if (!image) return "";
+    if (!image) return undefined;
+
     const markdownMatch = image.match(/\]\((.*?)\)/);
+
     if (markdownMatch) {
       return markdownMatch[1];
     }
+
     return image;
   };
 
@@ -169,7 +165,7 @@ const EventsPage = () => {
       {/* Heading */}
       <div className={styles.heading}>
         <h1>All Events</h1>
-        <p>{events.length} events found</p>
+        <p>{totalEvents} events found</p>
       </div>
       {/* Controls */}
       <div className={styles.controls}>
@@ -227,6 +223,40 @@ const EventsPage = () => {
         </div>
       )}
       {/* Event Grid */}
+      <div className={styles.eventGrid}>
+        {loading ? (
+          <div className={styles.loading}>Loading events...</div>
+        ) : (
+          events.map((event) => {
+            const imageUrl = getImageUrl(event.images?.[0]);
+
+            const lowestPrice =
+              event.tickets?.length > 0
+                ? Math.min(...event.tickets.map((ticket) => ticket.price))
+                : null;
+
+            return (
+              <EventCard
+                eventId={event.id}
+                key={event.id}
+                imageSrc={imageUrl}
+                imageAlt={event.title}
+                badgeText={event.genres?.[0] || "Event"}
+                title={event.title}
+                date={`${formatDate(event.date)} · ${event.time}`}
+                Venue={event.venue?.name || "Venue unavailable"}
+                price={
+                  lowestPrice !== null
+                    ? `$${lowestPrice.toFixed(2)}`
+                    : "Unavailable"
+                }
+                buttonLabel="Get Tickets"
+              />
+            );
+          })
+        )}
+      </div>
+
       <div className={styles.paginationContainer}>
         <Pagination
           defaultPage={page}

@@ -4,11 +4,12 @@
 
 .page {
   min-height: 100vh;
-  flex-direction: column;
   display: flex;
-  padding: 32px;
+  flex-direction: column;
+  padding: 48px 56px;
   background-color: #0d0d0f;
   color: white;
+  box-sizing: border-box;
 }
 
 /* =========================
@@ -21,51 +22,63 @@
 
 .heading h1 {
   margin: 0;
-  font-size: 32px;
+  font-size: 40px;
   font-weight: 600;
 }
 
 .heading p {
-  margin-top: 6px;
+  margin: 8px 0 0;
   color: #888;
-  font-size: 14px;
+  font-size: 15px;
 }
 
+.loading {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  font-size: 1rem;
+  color: var(--text-secondary, #71717a);
+}
 /* =========================
-   Filter + Sort buttons
+   Filter + Sort
 ========================= */
 
 .controls {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.filterButton,
+.sortSelect {
+  height: 48px;
+  padding: 0 18px;
+  border: 1px solid #333;
+  border-radius: 10px;
+  background-color: #17171a;
+  color: white;
+  font-size: 15px;
 }
 
 .filterButton {
-  padding: 10px 16px;
-  border: 1px solid #333;
-  border-radius: 8px;
-  background-color: #17171a;
-  color: white;
   cursor: pointer;
 }
 
-.filterButton:hover {
-  background-color: #222228;
+.filterButton:hover,
+.sortSelect:hover {
+  background-color: #202024;
 }
 
 .sortSelect {
-  padding: 10px 14px;
-  border: 1px solid #333;
-  border-radius: 8px;
-  background-color: #17171a;
-  color: white;
+  min-width: 190px;
   cursor: pointer;
 }
 
 /* =========================
-   Filter section
+   Filters
 ========================= */
 
 .filters {
@@ -73,8 +86,8 @@
   align-items: center;
   gap: 16px;
 
-  margin-bottom: 24px;
-  padding: 16px;
+  margin-bottom: 28px;
+  padding: 18px;
 
   border: 1px solid #333;
   border-radius: 10px;
@@ -94,9 +107,9 @@
 }
 
 .genreSelect {
-  padding: 9px 12px;
+  padding: 10px 14px;
   border: 1px solid #333;
-  border-radius: 7px;
+  border-radius: 8px;
 
   background-color: #0d0d0f;
   color: white;
@@ -105,10 +118,10 @@
 }
 
 .clearButton {
-  padding: 9px 14px;
+  padding: 10px 14px;
 
   border: 1px solid #333;
-  border-radius: 7px;
+  border-radius: 8px;
 
   background-color: transparent;
   color: #aaa;
@@ -121,14 +134,67 @@
   color: white;
 }
 
+/* =========================
+   Event Grid
+========================= */
+
+.eventGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 455px);
+  gap: 12px;
+  width: 100%;
+  justify-content: center;
+}
+/* =========================
+   Pagination
+========================= */
 .paginationContainer {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 40px;
+  width: 100%;
+  margin-top: 24px;
   margin-bottom: 30px;
 }
+/* =========================
+   Responsive
+========================= */
 
-.paginationContainer > nav {
-  width: fit-content;
+@media (max-width: 900px) {
+  .page {
+    padding: 32px;
+  }
+
+  .eventGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 24px 16px;
+  }
+
+  .heading h1 {
+    font-size: 32px;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .sortSelect {
+    width: 100%;
+  }
+
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filterGroup {
+    justify-content: space-between;
+  }
 }

@@ -2,43 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { UserType } from "../types/user";
+import { useUser } from "../hooks/user/use-user";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
 export default function HomePage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: user, isLoading, isError } = useUser();
+  console.log(user?.name);
+  console.log(isLoading);
 
   useEffect(() => {
-    async function fetchUser() {
-      try {
-        const res = await fetch(`${API_URL}/auth/me`, {
-          credentials: "include",
-        });
-
-        if (!res.ok) {
-          router.push("/login");
-          return;
-        }
-
-        const data = await res.json();
-        setUser(data.user);
-      } catch {
-        router.push("/login");
-      } finally {
-        setLoading(false);
-      }
+    if (!isLoading && (isError || !user)) {
+      router.push("/login");
     }
-
-    fetchUser();
-  }, [router]);
+  }, [isLoading, isError, user, router]);
 
   async function handleLogout() {
     await fetch(`${API_URL}/auth/logout`, {
@@ -48,7 +27,7 @@ export default function HomePage() {
     router.push("/login");
   }
 
-  if (loading) {
+  if (isLoading) {
     return null;
   }
 

@@ -2,56 +2,73 @@ import React from "react";
 import { Badge } from "../Badge";
 import { Button } from "../Button";
 import { Avatar } from "../Avatar";
+import "./Card.css";
 
 export { Badge, Button, Avatar };
+export type CardType = "event" | "order" | "artist";
 
-export const CardImage: React.FC<{ src: string; alt: string; children?: React.ReactNode }> = ({
-  src,
-  alt,
+export interface CardProps {
+  type?: CardType;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export const Card: React.FC<CardProps> = ({
+  type,
   children,
-}) => (
+  className = "",
+}) => {
+  return <div className={`card card-${type} ${className}`}>{children}</div>;
+};
+export const CardImage: React.FC<{
+  src?: string;
+  alt: string;
+  children?: React.ReactNode;
+}> = ({ src, alt, children }) => (
   <div className="card-image-wrapper">
-    <img src={src} alt={alt} className="card-image" />
+    {src && <img src={src} alt={alt} className="card-image" />}
     {children}
   </div>
 );
 
-export const CardBody: React.FC<{ children: React.ReactNode; className?: string }> = ({
-  children,
-  className = "",
-}) => <div className={`card-body ${className}`}>{children}</div>;
+export const CardBody: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+}> = ({ children, className = "" }) => (
+  <div className={`card-body ${className}`}>{children}</div>
+);
 
-export const CardRow: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> = ({
-  children,
-  className = "",
-  style,
-}) => (
+export const CardRow: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}> = ({ children, className = "", style }) => (
   <div className={`card-row ${className}`} style={style}>
     {children}
   </div>
 );
 
-export const CardTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h3 className="card-title">{children}</h3>
-);
-
-export const CardSubtext: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({
+export const CardTitle: React.FC<{ children: React.ReactNode }> = ({
   children,
-  style,
-}) => (
+}) => <h3 className="card-title">{children}</h3>;
+
+export const CardSubtext: React.FC<{
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}> = ({ children, style }) => (
   <p className="card-subtext" style={style}>
     {children}
   </p>
 );
 
-export const CardPrice: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="card-price">{children}</span>
-);
+export const CardPrice: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => <span className="card-price">{children}</span>;
 
-export const CardCode: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="card-code">{children}</span>
-);
+export const CardCode: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => <span className="card-code">{children}</span>;
 
-export const CardMetaInline: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="card-meta-inline">{children}</div>
-);
+export const CardMetaInline: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => <div className="card-meta-inline">{children}</div>;

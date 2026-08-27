@@ -6,6 +6,8 @@ import {
   me,
   verifyEmail,
   verifyCode,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/auth.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 
@@ -17,5 +19,7 @@ router.post("/verify-code", verifyCode);
 router.post("/login", login);
 router.post("/logout", logout);
 router.get("/me", requireAuth, me);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 export default router;

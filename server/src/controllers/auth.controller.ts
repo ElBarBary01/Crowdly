@@ -3,7 +3,10 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import prisma from "../lib/prisma";
 import { signToken, verifyToken as verifyJwt } from "../lib/jwt";
-import { sendVerifyEmail } from "../lib/email/service/email";
+import {
+  sendVerifyEmail,
+  sendResetPasswordEmail,
+} from "../lib/email/service/email";
 
 const SALT_ROUNDS = 12;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3001";
@@ -244,6 +247,92 @@ export async function login(req: Request, res: Response) {
 
   return res.status(200).json({
     user: { id: user.id, name: user.name, email: user.email },
+  });
+}
+
+
+export async function forgotPassword(req: Request, res: Response) {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  // Don't reveal whether the email exists.
+  if (!user) {
+    return res.status(200).json({
+      message:
+        "If an account exists with this email, a reset link has been sent.",
+    });
+  }
+
+  const resetToken = signToken(
+  { userId: user.id },
+  { expiresIn: "15m" },
+);
+
+  const resetUrl = `${FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+  if (process.env.RESEND_API_KEY) {
+    await sendResetPasswordEmail({
+      email: user.email,
+      resetUrl,
+      manageUrl: `${FRONTEND_URL}/account`,
+    });
+  }
+
+  return res.status(200).json({
+    message:
+      "If an account exists with this email, a reset link has been sent.",
+  });
+}
+
+
+
+export async function resetPassword(req: Request, res: Response) {
+  const { token, password } = req.body;
+
+  if (!token || !password) {
+    return res.status(400).json({
+      error: "Token and password are required",
+    });
+  }
+
+  let payload;
+
+  try {
+    payload = verifyJwt(token);
+  } catch {
+    return res.status(400).json({
+      error: "This reset link is invalid or has expired",
+    });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+  });
+
+  if (!user) {
+    return res.status(404).json({
+      error: "User not found",
+    });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      password: hashedPassword,
+    },
+  });
+
+  return res.status(200).json({
+    message: "Password reset successfully",
   });
 }
 

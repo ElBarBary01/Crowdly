@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { UserType } from "../types/user";
 import { useUser } from "../hooks/user/use-user";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 export default function HomePage() {
   const router = useRouter();

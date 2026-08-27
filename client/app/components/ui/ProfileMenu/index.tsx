@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Avatar } from "../Avatar"; // adjust path as needed
-import { useUser } from "@/app/hooks/user/use-user"; // adjust path as needed
+import { useQueryClient } from "@tanstack/react-query";
+import { Avatar } from "../Avatar";
+import { useUser } from "@/app/hooks/user/use-user";
 import styles from "./profileMenu.module.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -19,10 +20,11 @@ function getInitials(name: string) {
 }
 
 export default function ProfileMenu() {
-  const { data: user } = useUser();
+  const { data: user, isLoading, isError } = useUser();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -39,10 +41,25 @@ export default function ProfileMenu() {
       method: "POST",
       credentials: "include",
     });
+
+    queryClient.setQueryData(["user-me"], null);
     router.push("/login");
   }
 
-  if (!user) return null;
+  if (isLoading) return null;
+
+  if (isError || !user) {
+    return (
+      <div className={styles.authButtons}>
+        <Link className={styles.login} href="/login">
+          Log in
+        </Link>
+        <Link className={styles.signup} href="/signup">
+          Sign up
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container} ref={menuRef}>

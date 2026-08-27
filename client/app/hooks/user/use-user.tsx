@@ -18,5 +18,7 @@ export const useUser = () => {
       const data = await response.json();
       return data.user;
     },
+    retry: false,
+    staleTime: 5 * 60 * 1000,
   });
 };

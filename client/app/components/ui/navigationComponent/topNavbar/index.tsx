@@ -3,7 +3,6 @@
 import Link from "next/link";
 import MobileNavbar from "../mobileNavbar";
 import ProfileMenu from "../../ProfileMenu";
-import { useUser } from "@/app/hooks/user/use-user";
 import styles from "./topNavbar.module.css";
 
 const navigationItems = [
@@ -13,8 +12,6 @@ const navigationItems = [
 ];
 
 export default function TopNavbar() {
-  const { data: user, isLoading } = useUser();
-
   return (
     <>
       <header className={styles.topNavbar}>
@@ -34,18 +31,7 @@ export default function TopNavbar() {
         </nav>
 
         <div className={styles.account}>
-          {isLoading ? null : user ? (
-            <ProfileMenu />
-          ) : (
-            <>
-              <Link className={styles.login} href="/login">
-                Log in
-              </Link>
-              <Link className={styles.signup} href="/signup">
-                Sign up
-              </Link>
-            </>
-          )}
+          <ProfileMenu />
         </div>
       </header>
 

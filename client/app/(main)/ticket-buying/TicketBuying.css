@@ -6,7 +6,7 @@
 .ticket-buying__header { margin-bottom: 32px; }
 .ticket-buying__header > h1 { margin: 16px 0 0; text-align: left; font-size: 30px; font-weight: 800; line-height: 36px; }
 .ticket-buying__stepper { width: 100%; max-width: 100%; min-width: 0; margin: 0 0 40px; }
-.ticket-buying__layout { display: grid; width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr) 288px; gap: 32px; align-items: start; }
+.ticket-buying__layout { display: grid; width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr); gap: 32px; align-items: start; }
 .ticket-buying__main, .ticket-buying__summary { min-width: 0; }
 .ticket-buying h1 { margin: 0 0 16px; font-size: 24px; line-height: 32px; font-weight: 700; }
 .ticket-buying h2 { margin: 0; }
@@ -29,7 +29,7 @@
 .ticket-buying__add-on .checkbox-custom { width: 16px; height: 16px; border: 1px solid #767676; border-radius: 2px; }
 .ticket-buying__add-on .checkbox-custom::after { left: 4px; top: 1px; width: 4px; height: 8px; }
 .ticket-buying__primary-action { width: 100%; margin-top: 16px; border-radius: var(--radius-xl); }
-.ticket-buying__summary { position: sticky; top: 24px; padding: 20px; }
+.ticket-buying__summary { position: static; padding: 20px; }
 .ticket-buying__event { display: flex; gap: 12px; margin-top: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,.06); }
 .ticket-buying__event > div { min-width: 0; }
 .ticket-buying__event-art { display: block; width: 64px; height: 64px; flex: 0 0 64px; border-radius: var(--radius-lg); object-fit: cover; }
@@ -93,7 +93,6 @@
 .ticket-buying__newsletter input::placeholder { color: var(--color-dim); }
 .ticket-buying__newsletter button { height: 42px; padding-inline: 20px; border-radius: var(--radius-lg); box-shadow: none; font-weight: 500; }
 @keyframes ticket-buying-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@media (max-width: 1023px) { .ticket-buying__layout { grid-template-columns: 1fr; } .ticket-buying__summary { position: static; grid-row: auto; } }
 @media (max-width: 760px) {
   .ticket-buying { padding: 32px 16px 0; }
   .ticket-buying__header > h1 { font-size: 24px; }

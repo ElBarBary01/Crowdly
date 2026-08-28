@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import {
   createEvent,
   getEvents,
+  getUpcomingEvents,
   getEventById,
   InvalidEventConfigurationError,
   updateEvent,
@@ -69,13 +70,15 @@ const getEventByIdHandler = async (req: Request, res: Response) => {
   }
 };
 
-const getLatestEventsHandler = async (_req: Request, res: Response) => {
+const getLatestEventsHandler = async (req: Request, res: Response) => {
   try {
-    const events = await getEvents();
-    const latestEvents = events
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5);
-    res.status(200).json({ success: true, count: latestEvents.length, data: latestEvents });
+    const limit = Math.min(Number(req.query.limit) || 5, 20);
+    const upcomingEvents = await getUpcomingEvents(limit);
+    res.status(200).json({
+      success: true,
+      count: upcomingEvents.length,
+      data: upcomingEvents,
+    });
   } catch (error) {
     console.error("Error fetching latest events:", error);
     res.status(500).json({ success: false, message: "Failed to fetch latest events" });
@@ -182,4 +185,5 @@ export {
   createEventHandler,
   updateEventHandler,
   deleteEventHandler,
+  getLatestEventsHandler,
 };

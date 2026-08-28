@@ -11,7 +11,9 @@
 }
 /* Variant Container Sizes & Directions */
 .card-event {
-  width: 300px;
+  width: 455px;
+  min-width: 260px;
+  max-width: 455px;
   display: flex;
   flex-direction: column;
 }
@@ -58,7 +60,7 @@
 .card-image-wrapper {
   position: relative;
   width: 100%;
-  height: 190px;
+  height: 105px;
   overflow: hidden;
 }
 

@@ -45,6 +45,28 @@ enum OrderStatus {
   PAYMENT
   CONFIRMATION
 }
+
+
+enum PaymentStatus {
+  NOT_STARTED
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  STRIPE
+}
+
+
+enum PaymentMethod {
+  CARD
+  APPLE_PAY
+  GOOGLE_PAY
+  PAYPAL
+}
 ////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -171,6 +193,7 @@ model Order {
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
   status      OrderStatus  @default(TICKET_SELECTION)
+  paymentStatus PaymentStatus @default(NOT_STARTED)
   serviceFee  Float          @default(0)
 
 
@@ -182,6 +205,26 @@ model Order {
 
   // Computed total
   totalPrice  Float
-
+  payments    PaymentAttempt[]
   @@map("orders")
+}
+
+
+model PaymentAttempt {
+  id                String          @id @default(uuid()) @map("_id")
+  orderId           String
+  order             Order           @relation(fields: [orderId], references: [id])
+
+  provider          PaymentProvider
+  providerReference String
+  providerSessionId String?
+  paymentIntentId   String?
+
+  method            PaymentMethod?
+  amount            Float
+  currency          String          @default("usd")
+  status            PaymentStatus
+
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
 }

@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import styles from "./event.module.css";
 import { Badge } from "../../../components/ui/Badge";
 import ProgressBar from "../../../components/ui/feedbackComponents/progressBar";
 import Tabs from "../../../components/ui/navigationComponent/tabs";
 import Button from "../../../components/ui/Button";
 import EventCard from "../../../components/ui/card/EventCard";
-
+import Stage, {
+  type StageType,
+  type TicketType,
+  type StageSection,
+} from "../../../components/ui/stage";
+import { useParams, useRouter } from "next/navigation";
 type Event = {
   id: string;
   title: string;
@@ -20,7 +24,7 @@ type Event = {
   venue: {
     id: string;
     name: string;
-    stageType: string;
+    stageType: StageType;
     description: string | null;
     capacity: number;
     location: string;
@@ -29,9 +33,10 @@ type Event = {
     policies: string[];
     seatingChartImage: string | null;
     ticketsLeft: number;
+    stageSections: StageSection[];
   };
   tickets: {
-    type: string;
+    type: TicketType;
     price: number;
     quantity: number;
     description: string | null;
@@ -57,6 +62,7 @@ export default function EventPage() {
   const [selectedTicket, setSelectedTicket] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [relatedEvents, setRelatedEvents] = useState<Event[]>([]);
+  const router = useRouter();
 
   const getImageUrl = (image?: string) => {
     if (!image) return "";
@@ -383,13 +389,20 @@ export default function EventPage() {
         )}
 
         {activeTab === "seating-chart" && (
-          <p>//////////Seating Chart content here/////////////</p>
+          <Stage
+            event={{
+              venue: event.venue,
+              tickets: event.tickets,
+            }}
+            formatPrice={(ticket) => `$${ticket.price.toFixed(2)}`}
+            formatTicketType={(type) => type.replaceAll("_", " ")}
+          />
         )}
       </div>
       <section className={styles.ticketOptions}>
         {event.tickets.map((ticket, index) => (
           <div
-            key={ticket.type}
+            key={`${ticket.type}-${index}`}
             className={`${styles.ticketCard} ${
               selectedTicket === index ? styles.selectedTicket : ""
             }`}
@@ -466,10 +479,9 @@ export default function EventPage() {
           className={styles.buyButton}
           disabled={selectedTicketData.quantity === 0}
           onClick={() => {
-            console.log("Buy Tickets clicked");
-            console.log("Selected ticket:", selectedTicketData.type);
-            console.log("Quantity:", quantity);
-            console.log("Total:", total);
+            router.push(
+              `/ticket-buying?eventId=${event.id}&ticketType=${selectedTicketData.type}&quantity=${quantity}`,
+            );
           }}
         >
           Buy Tickets

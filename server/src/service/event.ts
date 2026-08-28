@@ -149,6 +149,24 @@ export async function getEvents(query: GetEventsQuery = {}) {
   };
 }
 
+export async function getUpcomingEvents(limit = 5) {
+  return prisma.event.findMany({
+    where: {
+      date: {
+        gte: new Date(),
+      },
+    },
+    orderBy: {
+      date: "asc",
+    },
+    take: limit,
+    include: {
+      venue: true,
+      artists: { include: { artist: true } },
+    },
+  });
+}
+
 export async function getEventById(id: string) {
   const event = await prisma.event.findUnique({
     where: { id },

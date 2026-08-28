@@ -41,6 +41,19 @@ const getEventByIdHandler = async (req: Request, res: Response) => {
   }
 };
 
+const getLatestEventsHandler = async (_req: Request, res: Response) => {
+  try {
+    const events = await getEvents();
+    const latestEvents = events
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+    res.status(200).json({ success: true, count: latestEvents.length, data: latestEvents });
+  } catch (error) {
+    console.error("Error fetching latest events:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch latest events" });
+  }
+};
+
 const createEventHandler = async (req: Request, res: Response) => {
   try {
     const dto: CreateEventDto = req.body;

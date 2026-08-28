@@ -42,7 +42,7 @@ export type Order = {
   events: OrderEvent[];
   tickets: OrderTicket[];
   totalPrice: number;
-  payments: PaymentAttempt[];
+  paymentAttempts: PaymentAttempt[];
 };
 
 // export type CreateOrderDto = {

@@ -53,6 +53,13 @@ const createOrderHandler = async (req: Request, res: Response) => {
         .json({ success: false, message: "userId is required" });
     }
 
+    if (!dto.eventId) {
+      return res.status(400).json({
+        success: false,
+        message: "eventId is required",
+      });
+    }
+
     if (
       !dto.tickets ||
       !Array.isArray(dto.tickets) ||
@@ -68,7 +75,13 @@ const createOrderHandler = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: order });
   } catch (error) {
     console.error("Error creating order:", error);
-    res.status(500).json({ success: false, message: "Failed to create order" });
+    const message =
+      error instanceof Error ? error.message : "Failed to create order";
+
+    return res.status(400).json({
+      success: false,
+      message,
+    });
   }
 };
 
@@ -80,16 +93,14 @@ const updateOrderHandler = async (req: Request, res: Response) => {
         .status(400)
         .json({ success: false, message: "Valid Order ID is required" });
     }
-    const dto = req.body;
 
-    const order = await updateOrder(id, dto);
+    const order = await updateOrder(id, req.body);
 
     if (!order) {
       return res
         .status(404)
         .json({ success: false, message: "Order not found" });
     }
-
     res.status(200).json({ success: true, data: order });
   } catch (error) {
     console.error("Error updating order:", error);

@@ -14,6 +14,7 @@ export type Event = {
   venueId: string;
   venue: EventVenue;
   tickets: EventTicket[];
+  description: string | null;
 };
 
 export type EventTicket = {

@@ -9,7 +9,6 @@ const tabItems: Array<{ id: TabId; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "seating-chart", label: "Seating Chart" },
   { id: "venue-info", label: "Venue Info" },
-  { id: "reviews", label: "Reviews" },
 ];
 
 interface TabsProps {

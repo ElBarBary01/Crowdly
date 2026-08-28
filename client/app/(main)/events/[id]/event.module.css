@@ -1,3 +1,10 @@
+.page {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 60px;
+  box-sizing: border-box;
+}
 .imageSection {
   width: 100%;
   height: 320px;
@@ -75,4 +82,392 @@
   margin-top: 4px;
   color: #77717f;
   font-size: 12px;
+}
+.overview {
+  padding: 20px 24px;
+}
+
+.eventDescription {
+  margin: 0;
+  color: #92909f;
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 900px;
+}
+.venueInfo {
+  padding: 40px 34px 60px;
+}
+
+.venueHeader {
+  margin-bottom: 36px;
+}
+
+.venueLabel {
+  display: block;
+  margin-bottom: 12px;
+  color: #a875ff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.venueHeader h2 {
+  margin: 0;
+  color: #f5f5f5;
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.venueLocation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  color: #9895a5;
+  font-size: 16px;
+}
+
+.venueLocation span {
+  font-size: 14px;
+}
+
+/* About */
+
+.venueDescription {
+  max-width: 900px;
+  margin-bottom: 40px;
+  padding: 24px 26px;
+  border: 1px solid #25242b;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(168, 117, 255, 0.07),
+    rgba(17, 17, 19, 0.8)
+  );
+}
+
+.venueDescription h3,
+.venueDetails > h3,
+.venueSection h3 {
+  margin: 0 0 14px;
+  color: #aaa6b8;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.venueDescription p {
+  margin: 0;
+  color: #dedce5;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* Details */
+
+.venueDetails {
+  max-width: 900px;
+}
+
+.venueStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.venueStat {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 120px;
+  padding: 22px 24px;
+  border: 1px solid #29272f;
+  border-radius: 14px;
+  background: #111113;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.venueStat:hover {
+  border-color: #7344b8;
+  transform: translateY(-2px);
+}
+
+.statIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border: 1px solid rgba(168, 117, 255, 0.25);
+  border-radius: 12px;
+  background: rgba(168, 117, 255, 0.08);
+  color: #a875ff;
+  font-size: 19px;
+}
+
+.statLabel {
+  display: block;
+  margin-bottom: 6px;
+  color: #777482;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.statValue {
+  color: #f5f5f5;
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.statUnit {
+  margin-left: 6px;
+  color: #85818f;
+  font-size: 13px;
+}
+
+/* Amenities / policies */
+
+.venueSection {
+  max-width: 900px;
+  margin-top: 40px;
+}
+
+.venueTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.venueTag {
+  padding: 9px 13px;
+  border: 1px solid #29272f;
+  border-radius: 8px;
+  background: #111113;
+  color: #aaa7b5;
+  font-size: 13px;
+}
+.ticketOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.ticketCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid #242229;
+  border-radius: 12px;
+  background: #111014;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.ticketCard:hover {
+  border-color: #6335a8;
+}
+
+.selectedTicket {
+  border-color: #9747ff;
+  background: #171322;
+}
+
+.ticketCard h3 {
+  margin: 0;
+  color: #f5f5f5;
+  font-size: 15px;
+}
+
+.ticketCard p {
+  margin: 6px 0 0;
+  color: #777481;
+  font-size: 12px;
+}
+
+.ticketCard strong {
+  color: #f5f5f5;
+  font-size: 16px;
+}
+.orderSummary {
+  margin-top: 10px;
+  padding: 16px;
+  background: #111113;
+  border: 1px solid #242428;
+  border-radius: 12px;
+}
+
+.quantityHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #92919e;
+  font-size: 14px;
+}
+
+.quantityControls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.quantityControls button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #29292f;
+  border-radius: 7px;
+  background: #18181c;
+  color: #f5f5f5;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.quantityControls button:hover:not(:disabled) {
+  border-color: #8b5cf6;
+}
+
+.quantityControls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.quantityControls span {
+  min-width: 12px;
+  text-align: center;
+  color: #f5f5f5;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 18px;
+  color: #686874;
+  font-size: 13px;
+}
+
+.summaryRow strong {
+  color: #f5f5f5;
+  font-size: 14px;
+}
+
+.summaryDivider {
+  height: 1px;
+  margin: 12px 0;
+  background: #202024;
+}
+
+.totalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #f5f5f5;
+  font-size: 14px;
+}
+
+.totalRow strong {
+  font-size: 17px;
+}
+
+.buyButton {
+  width: 100%;
+  height: 52px;
+  margin-top: 18px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(100deg, #9747ff, #ff2674);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.buyButton:hover {
+  opacity: 0.92;
+}
+
+.buyButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.relatedEvents {
+  margin-top: 48px;
+}
+
+.relatedEvents h2 {
+  margin: 0 0 24px;
+  color: #f5f5f5;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.relatedEventsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.relatedEventCard {
+  overflow: hidden;
+  border: 1px solid #242229;
+  border-radius: 12px;
+  background: #111113;
+}
+
+.relatedEventImage {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.relatedEventContent {
+  padding: 16px;
+}
+
+.relatedEventTitle {
+  margin: 0 0 6px;
+  color: #f5f5f5;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.relatedEventDetails {
+  margin: 0;
+  color: #777481;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.relatedEventPrice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+}
+
+.relatedEventPrice span {
+  color: #777481;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.relatedEventPrice strong {
+  display: block;
+  margin-top: 4px;
+  color: #f5f5f5;
+  font-size: 18px;
+}
+
+.relatedEventButton {
+  color: #a875ff;
+  font-size: 13px;
+  font-weight: 600;
 }

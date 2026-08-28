@@ -47,6 +47,9 @@ export default function EventPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "seating-chart" | "venue-info" | "reviews"
+  >("overview");
 
   const getImageUrl = (image?: string) => {
     if (!image) return "";
@@ -243,8 +246,14 @@ export default function EventPage() {
       </section>
 
       <section className={styles.eventTabs}>
-        <Tabs />
+        <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
       </section>
+      <div>
+        {activeTab === "overview" && <p>Overview content</p>}
+        {activeTab === "seating-chart" && <p>Seating Chart content</p>}
+        {activeTab === "venue-info" && <p>Venue Info content</p>}
+        {activeTab === "reviews" && <p>Reviews content</p>}
+      </div>
     </main>
   );
 }

@@ -350,7 +350,7 @@ export async function me(req: Request, res: Response) {
 
   const user = await prisma.user.findUnique({
     where: { id: authReq.user.userId },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, profileImage: true },
   });
 
   if (!user) {

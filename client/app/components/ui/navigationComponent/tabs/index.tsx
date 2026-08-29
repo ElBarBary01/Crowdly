@@ -9,12 +9,14 @@ const tabItems: Array<{ id: TabId; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "seating-chart", label: "Seating Chart" },
   { id: "venue-info", label: "Venue Info" },
-  { id: "reviews", label: "Reviews" },
 ];
 
-export default function Tabs() {
-  const [activeTab, setActiveTab] = useState<TabId>("overview");
+interface TabsProps {
+  activeTab: TabId;
+  onTabChange: (tab: TabId) => void;
+}
 
+export default function Tabs({ activeTab, onTabChange }: TabsProps) {
   return (
     <div className={styles.tabs} role="tablist" aria-label="Event details">
       {tabItems.map((tab) => {
@@ -27,7 +29,7 @@ export default function Tabs() {
             role="tab"
             aria-selected={isActive}
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => onTabChange(tab.id)}
           >
             <span className={styles.label}>{tab.label}</span>
           </button>

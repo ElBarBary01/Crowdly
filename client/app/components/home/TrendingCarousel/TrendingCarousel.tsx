@@ -47,8 +47,8 @@ function mapEvent(event: Event): TrendingEvent {
   };
 }
 
-function eventDetailsPath(title: string) {
-  return `/event-details/${encodeURIComponent(title)}`;
+function eventDetailsPath(id: string) {
+  return `/events/${id}`;
 }
 
 function CalendarIcon() {
@@ -133,7 +133,7 @@ export default function TrendingCarousel() {
         }}
     >
         <HeroBanner
-            key={activeEvent.title}
+            key={activeEvent.id}
             title={activeEvent.title}
             subtitle={activeEvent.subtitle}
             backgroundImage={activeEvent.backgroundImage}
@@ -146,7 +146,7 @@ export default function TrendingCarousel() {
             <div className="trending-carousel__actions">
                 <a
                     className="trending-carousel__ticket-button"
-                    href={eventDetailsPath(activeEvent.title)}
+                    href={eventDetailsPath(activeEvent.id)}
                 >
                 Get Tickets - From {activeEvent.price}
                 </a>
@@ -180,7 +180,7 @@ export default function TrendingCarousel() {
         >
             {trendingEvents.map((event, index) => (
             <button
-                key={event.title}
+                key={event.id}
                 className={`trending-carousel__dot${index === activeIndex ? " trending-carousel__dot--active" : ""}`}
                 type="button"
                 aria-label={`Show ${event.title}`}

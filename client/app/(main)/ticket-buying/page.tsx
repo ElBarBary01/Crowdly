@@ -6,7 +6,7 @@ import Checkbox from "../../components/ui/Checkbox/Checkbox";
 import InputField from "../../components/ui/InputField";
 import ProgressStepper from "../../components/ui/feedbackComponents/progressStepper";
 import "./TicketBuying.css";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type CheckoutState = "tickets" | "account" | "payment" | "confirmation";
 type AddOnId = "parking" | "merch" | "lounge";
@@ -183,6 +183,7 @@ function OrderSummary({
 }
 
 export default function TicketBuying() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const eventId = searchParams.get("eventId");
   const ticketType = searchParams.get("ticketType");
@@ -243,6 +244,10 @@ export default function TicketBuying() {
   };
 
   const goBack = () => {
+    if (currentState === "tickets" && eventId) {
+      router.push(`/events/${eventId}`);
+      return;
+    }
     const previousState: Record<
       Exclude<CheckoutState, "tickets">,
       CheckoutState

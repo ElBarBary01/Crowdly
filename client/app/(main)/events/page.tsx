@@ -182,8 +182,8 @@ const EventsPage = () => {
           className={styles.sortSelect}
         >
           <option value="relevance">Sort: Relevance</option>
-          <option value="date-desc">Date: Soonest</option>
-          <option value="date-asc">Date: Latest</option>
+          <option value="date-asc">Date: Soonest</option>
+          <option value="date-desc">Date: Latest</option>
           <option value="title-asc">Title: A-Z</option>
           <option value="title-desc">Title: Z-A</option>
         </select>

@@ -1,0 +1,22 @@
+.mb-2 {
+  margin-bottom: 8px;
+}
+
+.mt-3 {
+  margin-top: 12px;
+}
+
+.event-card-skeleton,
+.artist-card-skeleton,
+.order-card-skeleton {
+  animation: skeleton-load 0.3s ease-in-out;
+}
+
+@keyframes skeleton-load {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

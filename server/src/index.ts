@@ -12,12 +12,13 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 
 const app: Application = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
+const clientURL = process.env.CLIENT_URL || "http://localhost:3000";
 
 app.use(express.json());
 app.use(
   cors({
-    origin: "http://localhost:3000", //Next.js dev URL
+    origin: clientURL, //Next.js dev URL
     credentials: true,
   }),
 );

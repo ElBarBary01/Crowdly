@@ -4,6 +4,7 @@ import {
   getEvents,
   getUpcomingEvents,
   getEventById,
+  getRelatedEvents,
   InvalidEventConfigurationError,
   updateEvent,
   deleteEvent,
@@ -178,10 +179,41 @@ const deleteEventHandler = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Failed to delete event" });
   }
 };
+const getRelatedEventsHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (typeof id !== "string") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Valid Event ID is required" });
+    }
+
+    const events = await getRelatedEvents(id);
+
+    if (events === null) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Event not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: events,
+    });
+  } catch (error) {
+    console.error("Error fetching related events:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch related events",
+    });
+  }
+};
 
 export {
   getEventsHandler,
   getEventByIdHandler,
+  getRelatedEventsHandler,
   createEventHandler,
   updateEventHandler,
   deleteEventHandler,

@@ -158,6 +158,7 @@ model Event {
   venue     Venue        @relation("VenueEvents", fields: [venueId], references: [id])
   tickets   Ticket[]
   images    String[]
+  description String?
   @@index([genres])
   @@unique([venueId, date, time])
 }

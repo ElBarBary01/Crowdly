@@ -159,7 +159,7 @@ model Event {
   tickets   Ticket[]
   images    String[]
   description String?
-
+  @@index([genres])
   @@unique([venueId, date, time])
 }
 

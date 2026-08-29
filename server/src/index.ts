@@ -6,6 +6,7 @@ import artistRoutes from "./routes/artist";
 import eventRoutes from "./routes/event";
 import orderRoutes from "./routes/order";
 import authRoutes from "./routes/auth.routes";
+import homeRoutes from "./routes/home";
 import { requireAuth } from "./middleware/auth.middleware";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -24,18 +25,14 @@ app.use(
 app.use(cookieParser());
 
 app.use("/auth", authRoutes);
-app.use(requireAuth);
-
-// Routes
-app.use("/user", userRoutes);
+app.use("/home", homeRoutes);
 app.use("/venue", venueRoutes);
 app.use("/artist", artistRoutes);
 app.use("/event", eventRoutes);
-app.use("/order", orderRoutes);
 
-app.get("/", (req: Request, res: Response) => {
-  res.json({ message: "Hello from typed Express!" });
-});
+app.use(requireAuth);
+app.use("/user", userRoutes);
+app.use("/order", orderRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);

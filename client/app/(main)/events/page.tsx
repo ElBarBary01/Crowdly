@@ -1,6 +1,7 @@
 "use client";
 
 import EventCard from "../../components/ui/card/EventCard";
+import { EventCardSkeleton } from "../../components/ui/skeleton/CardSkeleton";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./events.module.css";
@@ -225,7 +226,7 @@ const EventsPage = () => {
       {/* Event Grid */}
       <div className={styles.eventGrid}>
         {loading ? (
-          <div className={styles.loading}>Loading events...</div>
+          <EventCardSkeleton count={6} />
         ) : (
           events.map((event) => {
             const imageUrl = getImageUrl(event.images?.[0]);

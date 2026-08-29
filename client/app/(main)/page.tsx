@@ -1,49 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { UserType } from "../types/user";
 import { useUser } from "../hooks/user/use-user";
+import { useHomeData } from "../hooks/home/use-home-data";
 import TrendingCarousel from "../components/home/TrendingCarousel/TrendingCarousel";
+import BrowseByGenre from "../components/home/BrowseByGenre/BrowseByGenre";
 import Skeleton from "../components/ui/skeleton/Skeleton";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-
 export default function HomePage() {
-  const router = useRouter();
-  const { data: user, isLoading, isError } = useUser();
-  console.log(user?.name);
-  console.log(isLoading);
-
-  useEffect(() => {
-    if (!isLoading && (isError || !user)) {
-      router.push("/login");
-    }
-  }, [isLoading, isError, user, router]);
-
-  async function handleLogout() {
-    await fetch(`${API_URL}/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
-    router.push("/login");
-  }
+  const { data: user } = useUser(); // still available for nav ("Log in" vs avatar)
+  const { data, isLoading, isError } = useHomeData();
 
   if (isLoading) {
     return (
-        <div style={{ marginBottom: "40px" }}>
-          <Skeleton width="100%" height="400px" variant="rectangular" animation="wave" />
-        </div>
+      <div style={{ marginBottom: "40px" }}>
+        <Skeleton
+          width="100%"
+          height="400px"
+          variant="rectangular"
+          animation="wave"
+        />
+      </div>
     );
   }
 
-  if (!user) {
-    return null;
+  if (isError || !data) {
+    return <div>Something went wrong loading the homepage.</div>;
   }
 
   return (
     <div>
-      <TrendingCarousel/>
+      <TrendingCarousel />
+      <BrowseByGenre genres={data.genres} />
     </div>
   );
 }

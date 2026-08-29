@@ -32,7 +32,7 @@ enum Genre {
   ROCK
   POP
   EDM
-  HIP_HOP
+  HIPHOP
   RNB
   JAZZ
   COUNTRY

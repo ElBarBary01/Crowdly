@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserType } from "../types/user";
 import { useUser } from "../hooks/user/use-user";
+import TrendingCarousel from "../components/home/TrendingCarousel/TrendingCarousel";
+import Skeleton from "../components/ui/skeleton/Skeleton";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -28,7 +30,11 @@ export default function HomePage() {
   }
 
   if (isLoading) {
-    return null;
+    return (
+        <div style={{ marginBottom: "40px" }}>
+          <Skeleton width="100%" height="400px" variant="rectangular" animation="wave" />
+        </div>
+    );
   }
 
   if (!user) {
@@ -37,8 +43,7 @@ export default function HomePage() {
 
   return (
     <div>
-      <h1>Welcome, {user.name}</h1>
-      <p>Email: {user.email}</p>
+      <TrendingCarousel/>
     </div>
   );
 }

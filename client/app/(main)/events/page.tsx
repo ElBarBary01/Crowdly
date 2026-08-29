@@ -1,6 +1,7 @@
 "use client";
 
 import EventCard from "../../components/ui/card/EventCard";
+import { EventCardSkeleton } from "../../components/ui/skeleton/CardSkeleton";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./events.module.css";
@@ -182,8 +183,8 @@ const EventsPage = () => {
           className={styles.sortSelect}
         >
           <option value="relevance">Sort: Relevance</option>
-          <option value="date-desc">Date: Soonest</option>
-          <option value="date-asc">Date: Latest</option>
+          <option value="date-asc">Date: Soonest</option>
+          <option value="date-desc">Date: Latest</option>
           <option value="title-asc">Title: A-Z</option>
           <option value="title-desc">Title: Z-A</option>
         </select>
@@ -225,7 +226,7 @@ const EventsPage = () => {
       {/* Event Grid */}
       <div className={styles.eventGrid}>
         {loading ? (
-          <div className={styles.loading}>Loading events...</div>
+          <EventCardSkeleton count={6} />
         ) : (
           events.map((event) => {
             const imageUrl = getImageUrl(event.images?.[0]);

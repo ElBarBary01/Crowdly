@@ -3,10 +3,16 @@ import {
   createVenue,
   getVenues,
   getVenueById,
+  InvalidVenueConfigurationError,
   updateVenue,
   deleteVenue,
 } from "../service/venue";
-import { CreateVenueDto, UpdateVenueDto } from "../types/venue";
+import {
+  areStageSections,
+  CreateVenueDto,
+  isStageType,
+  UpdateVenueDto,
+} from "../types/venue";
 
 const getVenuesHandler = async (_req: Request, res: Response) => {
   try {
@@ -49,12 +55,15 @@ const createVenueHandler = async (req: Request, res: Response) => {
     if (
       !dto.name ||
       !dto.location ||
-      dto.capacity === undefined ||
-      dto.capacity === null
+      !isStageType(dto.stageType) ||
+      !Number.isInteger(dto.capacity) ||
+      dto.capacity <= 0 ||
+      !areStageSections(dto.stageSections)
     ) {
       return res.status(400).json({
         success: false,
-        message: "Name, location, and capacity are required",
+        message:
+          "Name, location, a positive capacity, a valid stageType, and at least one valid stageSection are required",
       });
     }
 
@@ -76,6 +85,34 @@ const updateVenueHandler = async (req: Request, res: Response) => {
     }
     const dto: UpdateVenueDto = req.body;
 
+    if (dto.stageType !== undefined && !isStageType(dto.stageType)) {
+      return res.status(400).json({
+        success: false,
+        message: "stageType must be THEATER, CONCERT_STAGE, or STADIUM",
+      });
+    }
+
+    if (
+      dto.capacity !== undefined &&
+      (!Number.isInteger(dto.capacity) || dto.capacity <= 0)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "capacity must be a positive integer",
+      });
+    }
+
+    if (
+      dto.stageSections !== undefined &&
+      !areStageSections(dto.stageSections)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "stageSections must contain unique IDs, names, and valid ticket types",
+      });
+    }
+
     const venue = await updateVenue(id, dto);
 
     if (!venue) {
@@ -86,6 +123,9 @@ const updateVenueHandler = async (req: Request, res: Response) => {
 
     res.status(200).json({ success: true, data: venue });
   } catch (error) {
+    if (error instanceof InvalidVenueConfigurationError) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     console.error("Error updating venue:", error);
     res.status(500).json({ success: false, message: "Failed to update venue" });
   }

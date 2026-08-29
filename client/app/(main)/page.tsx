@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import TrendingCarousel from "../components/home/TrendingCarousel/TrendingCarousel";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 interface User {
   id: string;
@@ -58,6 +59,8 @@ export default function HomePage() {
 
   return (
     <div>
+      <TrendingCarousel/>
+      
       <h1>Welcome, {user.name}</h1>
       <p>Email: {user.email}</p>
     </div>

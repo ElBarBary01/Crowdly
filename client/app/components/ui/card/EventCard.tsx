@@ -11,6 +11,8 @@ import {
 } from "./CardComponent";
 import { useRouter } from "next/navigation";
 
+export type EventCardSize = "default" | "compact" | "large";
+
 export interface EventCardProps {
   eventId?: string;
   imageSrc?: string;
@@ -22,6 +24,7 @@ export interface EventCardProps {
   price: string;
   buttonLabel?: string;
   className?: string;
+  size?: EventCardSize;
 }
 
 export default function EventCard({
@@ -35,10 +38,13 @@ export default function EventCard({
   price,
   buttonLabel = "Get Tickets",
   className,
+  size = "default",
 }: EventCardProps) {
   const router = useRouter();
+  const sizeClass = `card-event-size-${size}`;
+
   return (
-    <Card type="event" className={className}>
+    <Card type="event" className={[sizeClass, className].filter(Boolean).join(" ")}>
       <CardImage src={imageSrc} alt={imageAlt}>
         {badgeText && <Badge variant="purple">{badgeText}</Badge>}
       </CardImage>

@@ -6,6 +6,9 @@ import { UserType } from "../types/user";
 import { useUser } from "../hooks/user/use-user";
 import TrendingCarousel from "../components/home/TrendingCarousel/TrendingCarousel";
 import Skeleton from "../components/ui/skeleton/Skeleton";
+import BrowseByGenre from "../components/home/BrowseByGenre/BrowseByGenre";
+import TrendingEvents from "../components/home/TrendingEvents/TrendingEvents";
+import FeaturedArtists from "../components/home/FeaturedArtists/FeaturedArtists";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -31,9 +34,14 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-        <div style={{ marginBottom: "40px" }}>
-          <Skeleton width="100%" height="400px" variant="rectangular" animation="wave" />
-        </div>
+      <div style={{ marginBottom: "40px" }}>
+        <Skeleton
+          width="100%"
+          height="400px"
+          variant="rectangular"
+          animation="wave"
+        />
+      </div>
     );
   }
 
@@ -42,8 +50,11 @@ export default function HomePage() {
   }
 
   return (
-    <div>
-      <TrendingCarousel/>
+    <div className="home-content">
+      <TrendingCarousel />
+      <TrendingEvents />
+      <BrowseByGenre />
+      <FeaturedArtists />
     </div>
   );
 }

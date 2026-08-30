@@ -18,6 +18,66 @@
   flex-direction: column;
 }
 
+.card-event-size-default {
+  width: 455px;
+  min-width: 260px;
+  max-width: 455px;
+}
+.card-event-size-compact {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.card-event-size-compact .card-image-wrapper {
+  height: 120px;
+}
+
+.card-event-size-compact .card-body {
+  padding: 1rem 1.1rem;
+  gap: 0.75rem;
+}
+
+.card-event-size-compact .card-title {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.card-event-size-compact .card-subtext {
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.card-event-size-compact .card-price {
+  font-size: 1.25rem;
+}
+.card-event-size-large {
+  width: 520px;
+  min-width: 300px;
+  max-width: 520px;
+}
+
+.card-event-size-large .card-image-wrapper {
+  height: 150px;
+}
+
+.card-event-size-large .card-body {
+  padding: 1.5rem;
+  gap: 0.9rem;
+}
+
+.card-event-size-large .card-title {
+  font-size: 1.35rem;
+}
+
+.card-event-size-large .card-subtext {
+  font-size: 0.95rem;
+}
+
+.card-event-size-large .card-price {
+  font-size: 1.8rem;
+}
+
 .card-order {
   width: 512px;
   padding: var(--space-4);

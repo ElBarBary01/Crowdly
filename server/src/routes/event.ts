@@ -7,12 +7,14 @@ import {
   updateEventHandler,
   deleteEventHandler,
   getRelatedEventsHandler,
+  getTrendingEventsHandler,
 } from "../controllers/event";
 
 const router = express.Router();
 
 router.get("/", getEventsHandler);
 router.get("/latest", getLatestEventsHandler);
+router.get("/trending", getTrendingEventsHandler);
 router.get("/:id", getEventByIdHandler);
 router.post("/", createEventHandler);
 router.put("/:id", updateEventHandler);

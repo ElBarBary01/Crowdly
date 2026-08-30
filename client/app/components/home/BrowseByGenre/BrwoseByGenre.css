@@ -1,7 +1,8 @@
 .container {
-  padding: var(--space-6) 0;
+  padding: 48px 64px;
   color: var(--color-text);
   font-family: var(--font-sans);
+  box-sizing: border-box;
 }
 
 .heading {

@@ -7,6 +7,7 @@ import { useUser } from "../hooks/user/use-user";
 import TrendingCarousel from "../components/home/TrendingCarousel/TrendingCarousel";
 import Skeleton from "../components/ui/skeleton/Skeleton";
 import BrowseByGenre from "../components/home/BrowseByGenre/BrowseByGenre";
+import TrendingEvents from "../components/home/TrendingEvents/TrendingEvents";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -48,8 +49,9 @@ export default function HomePage() {
   }
 
   return (
-    <div>
+    <div className="home-content">
       <TrendingCarousel />
+      <TrendingEvents />
       <BrowseByGenre />
     </div>
   );

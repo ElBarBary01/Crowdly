@@ -5,11 +5,11 @@ import {
   getUpcomingEvents,
   getEventById,
   getRelatedEvents,
+  getTrendingEvents,
   InvalidEventConfigurationError,
   updateEvent,
   deleteEvent,
 } from "../service/event";
-
 import {
   CreateEventDto,
   UpdateEventDto,
@@ -82,7 +82,9 @@ const getLatestEventsHandler = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error fetching latest events:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch latest events" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch latest events" });
   }
 };
 
@@ -209,6 +211,23 @@ const getRelatedEventsHandler = async (req: Request, res: Response) => {
     });
   }
 };
+const getTrendingEventsHandler = async (req: Request, res: Response) => {
+  try {
+    const trendingEvents = await getTrendingEvents(4);
+
+    res.status(200).json({
+      success: true,
+      count: trendingEvents.length,
+      data: trendingEvents,
+    });
+  } catch (error) {
+    console.error("Error fetching trending events:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch trending events",
+    });
+  }
+};
 
 export {
   getEventsHandler,
@@ -218,4 +237,5 @@ export {
   updateEventHandler,
   deleteEventHandler,
   getLatestEventsHandler,
+  getTrendingEventsHandler,
 };

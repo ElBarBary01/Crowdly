@@ -166,6 +166,30 @@ export async function getUpcomingEvents(limit = 5) {
     },
   });
 }
+export async function getTrendingEvents(limit = 4) {
+  const events = await prisma.event.findMany({
+    where: {
+      date: {
+        gte: new Date(),
+      },
+    },
+    include: {
+      venue: true,
+      artists: { include: { artist: true } },
+    },
+  });
+
+  return events
+    .map(addTicketsLeft)
+    .sort((a, b) => {
+      if (a.venue.ticketsLeft !== b.venue.ticketsLeft) {
+        return a.venue.ticketsLeft - b.venue.ticketsLeft;
+      }
+
+      return a.date.getTime() - b.date.getTime();
+    })
+    .slice(0, limit);
+}
 
 export async function getEventById(id: string) {
   const event = await prisma.event.findUnique({

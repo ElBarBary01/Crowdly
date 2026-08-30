@@ -17,7 +17,11 @@
   font-family: var(--font-geist-sans);
   background-color: var(--background);
 }
-
+.home-content {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
 .main {
   display: flex;
   flex: 1;

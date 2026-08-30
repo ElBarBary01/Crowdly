@@ -1,0 +1,27 @@
+.trending-events {
+  width: 100%;
+  padding: 48px 54px;
+  box-sizing: border-box;
+}
+
+.trending-events-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.trending-events-header h2 {
+  margin: 0;
+}
+
+.trending-events-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  width: 100%;
+}
+.trending-view-all-arrow {
+  font-size: 1.2rem;
+  margin-left: 4px;
+}

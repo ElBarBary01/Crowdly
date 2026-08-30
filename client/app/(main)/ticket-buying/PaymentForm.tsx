@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
+import type { StripeCardElementOptions } from "@stripe/stripe-js";
 import Button from "../../components/ui/Button";
 
 interface PaymentFormProps {
@@ -10,6 +11,14 @@ interface PaymentFormProps {
   isProcessing: boolean;
   onSuccess: () => void;
   onError: (error: string) => void;
+}
+
+function readCssVar(name: string, fallback: string) {
+  if (typeof window === "undefined") return fallback;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  return value || fallback;
 }
 
 export default function PaymentForm({
@@ -22,6 +31,34 @@ export default function PaymentForm({
   const stripe = useStripe();
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cardElementOptions, setCardElementOptions] =
+    useState<StripeCardElementOptions | null>(null);
+
+  useEffect(() => {
+    // Pull actual theme colors so the Stripe iframe matches your CSS vars
+    const textColor = readCssVar("--color-text", "#e5e5e5");
+    const dimColor = readCssVar("--color-dim", "#8a8a8a");
+    const errorColor = readCssVar("--color-error", "#c23030");
+    const fontSans = readCssVar("--font-sans", "sans-serif");
+
+    setCardElementOptions({
+      style: {
+        base: {
+          color: textColor,
+          fontSize: "14px",
+          lineHeight: "20px",
+          fontFamily: fontSans,
+          "::placeholder": {
+            color: dimColor,
+          },
+        },
+        invalid: {
+          color: errorColor,
+          iconColor: errorColor,
+        },
+      },
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +76,6 @@ export default function PaymentForm({
     setIsSubmitting(true);
 
     try {
-      // Step 1: Create payment intent on backend
-      console.log("Creating payment for orderId:", orderId);
       const paymentResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/payments/create`,
         {
@@ -51,9 +86,7 @@ export default function PaymentForm({
         },
       );
 
-      console.log("Payment creation response status:", paymentResponse.status);
       const paymentData = await paymentResponse.json();
-      console.log("Payment creation response:", paymentData);
 
       if (!paymentResponse.ok) {
         throw new Error(paymentData.message || "Failed to create payment");
@@ -61,7 +94,6 @@ export default function PaymentForm({
 
       const { clientSecret } = paymentData.data;
 
-      // Step 2: Confirm payment with Stripe using Elements
       const cardElement = elements.getElement(CardElement);
 
       if (!cardElement) {
@@ -82,7 +114,6 @@ export default function PaymentForm({
       }
 
       if (result.paymentIntent?.status === "succeeded") {
-        console.log("✓ Payment succeeded");
         onSuccess();
       } else {
         throw new Error("Payment not completed");
@@ -90,41 +121,25 @@ export default function PaymentForm({
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Payment processing failed";
-      console.error("Payment error:", message);
       onError(message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const cardElementOptions = {
-    style: {
-      base: {
-        fontSize: "16px",
-        color: "#424242",
-      },
-      invalid: {
-        color: "#c23030",
-      },
-    },
-  };
-
   return (
     <form onSubmit={handleSubmit}>
-      <div
-        style={{
-          padding: "10px",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-          marginBottom: "1rem",
-        }}
-      >
-        <CardElement options={cardElementOptions} />
+      <div className="ticket-buying__stripe-field">
+        <label className="input-field__label">Card Details</label>
+        <div className="ticket-buying__stripe-input">
+          {cardElementOptions && <CardElement options={cardElementOptions} />}
+        </div>
       </div>
 
       <Button
         type="submit"
         size="lg"
+        className="ticket-buying__primary-action"
         disabled={isSubmitting || isProcessing || !stripe || !elements}
       >
         {isSubmitting || isProcessing

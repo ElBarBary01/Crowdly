@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import MobileNavbar from "../mobileNavbar";
+import ProfileMenu from "../../ProfileMenu";
 import styles from "./topNavbar.module.css";
 
 const navigationItems = [
@@ -28,12 +31,7 @@ export default function TopNavbar() {
         </nav>
 
         <div className={styles.account}>
-          <Link className={styles.login} href="/login">
-            Log in
-          </Link>
-          <Link className={styles.signup} href="/signup">
-            Sign up
-          </Link>
+          <ProfileMenu />
         </div>
       </header>
 

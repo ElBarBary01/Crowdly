@@ -8,6 +8,7 @@ import {
   getOrdersByUserId,
 } from "../service/order";
 import { CreateOrderDto } from "../types/order";
+import type { AuthRequest } from "../middleware/auth.middleware";
 
 const getOrdersHandler = async (_req: Request, res: Response) => {
   try {
@@ -42,17 +43,22 @@ const getOrderByIdHandler = async (req: Request, res: Response) => {
   }
 };
 
-const createOrderHandler = async (req: Request, res: Response) => {
+const createOrderHandler = async (req: AuthRequest, res: Response) => {
   try {
-    const dto: CreateOrderDto = req.body;
+    const userId = req.user?.userId;
 
-    // Validate required fields
-    if (!dto.userId) {
+    if (!userId) {
       return res
-        .status(400)
-        .json({ success: false, message: "userId is required" });
+        .status(401)
+        .json({ success: false, message: "User not authenticated" });
     }
 
+    const dto: CreateOrderDto = {
+      ...req.body,
+      userId,
+    };
+
+    // Validate required fields
     if (
       !dto.tickets ||
       !Array.isArray(dto.tickets) ||

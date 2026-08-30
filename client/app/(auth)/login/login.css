@@ -177,3 +177,13 @@ body {
 .login-signup a:hover {
   text-decoration: underline;
 }
+.login-success {
+  font-size: var(--text-caption);
+  color: var(--color-success);
+  margin: calc(var(--space-2) * -1) 0 0;
+}
+.login-success {
+  font-size: var(--text-caption);
+  color: #22c55e;
+  margin: calc(var(--space-2) * -1) 0 0;
+}

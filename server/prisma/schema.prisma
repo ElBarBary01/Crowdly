@@ -46,7 +46,6 @@ enum OrderStatus {
   CONFIRMATION
 }
 
-
 enum PaymentStatus {
   NOT_STARTED
   PENDING
@@ -60,7 +59,6 @@ enum PaymentProvider {
   STRIPE
 }
 
-
 enum PaymentMethod {
   CARD
   APPLE_PAY
@@ -68,7 +66,6 @@ enum PaymentMethod {
   PAYPAL
 }
 ////////////////////////////////////////////////////////////////////////////////////
-
 
 // Types
 
@@ -90,7 +87,7 @@ type StageSection {
 
 // OrderTicket (per-ticket-line item inside an order)
 type OrderTicket {
-  eventId String
+  eventId  String
   type     TicketType
   price    Float
   quantity Int
@@ -98,12 +95,12 @@ type OrderTicket {
 
 // Embedded event snapshot inside an order
 type OrderEvent {
-  id          String
-  title       String
-  date        DateTime
-  time        String
-  venueId     String
-  venueName   String
+  id        String
+  title     String
+  date      DateTime
+  time      String
+  venueId   String
+  venueName String
 }
 ////////////////////////////////////////////////////////////////////////////////////
 
@@ -111,19 +108,20 @@ type OrderEvent {
 
 // User
 model User {
-  id        String   @id @default(uuid()) @map("_id")
-  name      String
-  email     String   @unique
-  password  String
-  phone     String?
-  address   String?
+  id           String    @id @default(uuid()) @map("_id")
+  name         String
+  email        String    @unique
+  password     String
+  phone        String?
+  address      String?
   profileImage String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-    emailVerified Boolean @default(false)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  emailVerified           Boolean   @default(false)
   verificationCodeHash    String?
   verificationCodeExpires DateTime?
-  verificationAttempts    Int      @default(0)
+  verificationAttempts    Int       @default(0)
 
   // Orders placed by this user
   orders Order[]
@@ -131,16 +129,16 @@ model User {
 
 // Venue
 model Venue {
-  id          String   @id @default(uuid()) @map("_id")
-  name        String
-  stageType   StageType @default(THEATER)
-  stageSections StageSection[]
-  description String?
-  capacity    Int
-  location    String
-  images      String[]
-  amenities   String[]
-  policies    String[]
+  id                String         @id @default(uuid()) @map("_id")
+  name              String
+  stageType         StageType      @default(THEATER)
+  stageSections     StageSection[]
+  description       String?
+  capacity          Int
+  location          String
+  images            String[]
+  amenities         String[]
+  policies          String[]
   seatingChartImage String?
 
   // Events that happened / will happen at this venue
@@ -149,7 +147,7 @@ model Venue {
 
 // Artist
 model Artist {
-  id     String     @id @default(uuid()) @map("_id")
+  id     String   @id @default(uuid()) @map("_id")
   name   String
   genres String[]
   images String[]
@@ -160,75 +158,76 @@ model Artist {
 
 // Bridge Document for Event-Artist many-to-many relationship
 model EventArtist {
-  id       String   @id @default(uuid()) @map("_id")
+  id       String @id @default(uuid()) @map("_id")
   eventId  String
   artistId String
-  event    Event    @relation(fields: [eventId], references: [id])
-  artist   Artist   @relation(fields: [artistId], references: [id])
+  event    Event  @relation(fields: [eventId], references: [id])
+  artist   Artist @relation(fields: [artistId], references: [id])
 
   @@unique([eventId, artistId])
 }
 
 // Event
 model Event {
-  id        String       @id @default(uuid()) @map("_id")
-  title     String
-  date      DateTime
-  time      String
-  genres    Genre[]
-  artists   EventArtist[]
-  venueId   String
-  venue     Venue        @relation("VenueEvents", fields: [venueId], references: [id])
-  tickets   Ticket[]
-  images    String[]
+  id          String        @id @default(uuid()) @map("_id")
+  title       String
+  date        DateTime
+  time        String
+  genres      Genre[]
+  artists     EventArtist[]
+  venueId     String
+  venue       Venue         @relation("VenueEvents", fields: [venueId], references: [id])
+  tickets     Ticket[]
+  images      String[]
+  description String?
 
   @@unique([venueId, date, time])
+  @@index([genres])
 }
-
 
 // Order
 model Order {
-  id          String       @id @default(uuid()) @map("_id")
-  userId      String
-  user        User         @relation(fields: [userId], references: [id])
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  status      OrderStatus  @default(TICKET_SELECTION)
+  id            String        @id @default(uuid()) @map("_id")
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  status        OrderStatus   @default(TICKET_SELECTION)
   paymentStatus PaymentStatus @default(NOT_STARTED)
-  serviceFee  Float          @default(0)
-
+  serviceFee    Float         @default(0)
 
   // Embedded event data snapshot at time of order
-  events      OrderEvent[]
+  events OrderEvent[]
 
   // Embedded ticket line items for this order
-  tickets     OrderTicket[]
+  tickets OrderTicket[]
 
   // Computed total
-  totalPrice  Float
-  payments    PaymentAttempt[]
+  totalPrice Float
+
+  payments PaymentAttempt[]
+
   @@map("orders")
 }
 
-
 model PaymentAttempt {
-  id                String          @id @default(uuid()) @map("_id")
-  orderId           String
-  order             Order           @relation(fields: [orderId], references: [id])
+  id    String @id @default(uuid()) @map("_id")
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
 
   provider          PaymentProvider
   providerReference String
   providerSessionId String?
   paymentIntentId   String?
 
-  method            PaymentMethod?
-  amount            Float
-  currency          String          @default("usd")
-  status            PaymentStatus
+  method   PaymentMethod?
+  amount   Float
+  currency String        @default("usd")
+  status   PaymentStatus
 
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
-  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   @@index([orderId])
   @@index([providerReference])
 }

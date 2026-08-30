@@ -1,0 +1,62 @@
+.skeleton {
+  background-color: #2a2a2a;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* Variants */
+.skeleton--text {
+  border-radius: 4px;
+  height: 1em;
+}
+
+.skeleton--rectangular {
+  border-radius: 8px;
+}
+
+.skeleton--circular {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+}
+
+/* Animations */
+.skeleton--pulse {
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.skeleton--wave {
+  animation: skeleton-wave 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background: linear-gradient(
+    90deg,
+    #2a2a2a 25%,
+    #3a3a3a 50%,
+    #2a2a2a 75%
+  );
+  background-size: 200% 100%;
+}
+
+.skeleton--none {
+  animation: none;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes skeleton-wave {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

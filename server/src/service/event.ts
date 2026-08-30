@@ -149,6 +149,24 @@ export async function getEvents(query: GetEventsQuery = {}) {
   };
 }
 
+export async function getUpcomingEvents(limit = 5) {
+  return prisma.event.findMany({
+    where: {
+      date: {
+        gte: new Date(),
+      },
+    },
+    orderBy: {
+      date: "asc",
+    },
+    take: limit,
+    include: {
+      venue: true,
+      artists: { include: { artist: true } },
+    },
+  });
+}
+
 export async function getEventById(id: string) {
   const event = await prisma.event.findUnique({
     where: { id },
@@ -242,4 +260,33 @@ export async function deleteEvent(id: string) {
     }),
   ]);
   return event;
+}
+export async function getRelatedEvents(id: string) {
+  const currentEvent = await prisma.event.findUnique({
+    where: { id },
+    select: {
+      genres: true,
+    },
+  });
+
+  if (!currentEvent) return null;
+
+  const events = await prisma.event.findMany({
+    where: {
+      id: { not: id },
+      genres: {
+        hasSome: currentEvent.genres,
+      },
+    },
+    orderBy: {
+      date: "asc",
+    },
+    take: 4,
+    include: {
+      venue: true,
+      artists: { include: { artist: true } },
+    },
+  });
+
+  return events.map(addTicketsLeft);
 }

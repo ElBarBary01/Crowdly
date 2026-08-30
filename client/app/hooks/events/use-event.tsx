@@ -1,32 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { EventTicket, StageVenue } from "../../components/ui/stage/types";
-type Event = {
-  id: string;
-  title: string;
-  description: string | null;
-  date: string;
-  time: string;
-  genres: string[];
-  images: string[];
-
-  venue: StageVenue & {
-    name: string;
-    location: string;
-    description: string | null;
-    amenities: string[];
-    policies: string[];
-  };
-
-  tickets: EventTicket[];
-
-  artists?: {
-    artist: {
-      id: string;
-      name: string;
-      image?: string;
-    };
-  }[];
-};
+import { Event } from "../../types/event";
 
 export const useEvent = (id: string) => {
   return useQuery<Event>({

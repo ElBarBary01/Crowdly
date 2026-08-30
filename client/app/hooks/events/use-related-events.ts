@@ -1,27 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-
-type RelatedEvent = {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  genres: string[];
-  images: string[];
-  venue: {
-    name: string;
-    address?: string;
-    location: string;
-    description?: string;
-    capacity: number;
-    stageType: string;
-    amenities: string[];
-    policies: string[];
-    ticketsLeft: number;
-  };
-  tickets: {
-    price: number;
-  }[];
-};
+import { RelatedEvent } from "../../types/event";
 
 export const useRelatedEvents = (id: string) => {
   return useQuery<RelatedEvent[]>({

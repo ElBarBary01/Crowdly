@@ -20,7 +20,12 @@ export type PaymentAttempt = {
   updatedAt?: Date;
 };
 
-export type OrderTicket = { type: string; price: number; quantity: number };
+export type OrderTicket = {
+  eventId: string;
+  type: string;
+  price: number;
+  quantity: number;
+};
 
 export type OrderEvent = {
   id: string;
@@ -54,14 +59,15 @@ export type Order = {
 // };
 
 export type CreateOrderTicketDto = {
+  eventId: string;
   type: string;
   quantity: number;
 };
 
 export type CreateOrderDto = {
   userId: string;
-  eventId: string;
   tickets: CreateOrderTicketDto[];
+  serviceFee?: number;
 };
 
 export type UpdateOrderDto = {

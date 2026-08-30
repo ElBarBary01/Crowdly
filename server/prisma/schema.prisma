@@ -90,6 +90,7 @@ type StageSection {
 
 // OrderTicket (per-ticket-line item inside an order)
 type OrderTicket {
+  eventId String
   type     TicketType
   price    Float
   quantity Int

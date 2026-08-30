@@ -53,13 +53,6 @@ const createOrderHandler = async (req: Request, res: Response) => {
         .json({ success: false, message: "userId is required" });
     }
 
-    if (!dto.eventId) {
-      return res.status(400).json({
-        success: false,
-        message: "eventId is required",
-      });
-    }
-
     if (
       !dto.tickets ||
       !Array.isArray(dto.tickets) ||

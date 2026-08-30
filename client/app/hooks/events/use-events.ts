@@ -1,32 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-
-type Event = {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  genres: string[];
-  images: string[];
-  venue: {
-    name: string;
-  };
-  tickets: {
-    price: number;
-  }[];
-};
-
-type EventsResponse = {
-  data: Event[];
-  total: number;
-  totalPages: number;
-};
-
-type UseEventsParams = {
-  sort: string;
-  order: string;
-  genre: string;
-  page: number;
-};
+import { Event, EventsResponse, UseEventsParams } from "../../types/event";
 
 export const useEvents = ({ sort, order, genre, page }: UseEventsParams) => {
   return useQuery<EventsResponse>({

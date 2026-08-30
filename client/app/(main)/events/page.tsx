@@ -2,29 +2,13 @@
 
 import EventCard from "../../components/ui/card/EventCard";
 import { EventCardSkeleton } from "../../components/ui/skeleton/CardSkeleton";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./events.module.css";
 import Pagination from "../../components/ui/navigationComponent/pagination";
-
-type Event = {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  genres: string[];
-  images: string[];
-  venue: {
-    name: string;
-  };
-  tickets: {
-    price: number;
-  }[];
-};
+import { useEvents } from "../../hooks/events/use-events";
 
 const EventsPage = () => {
-  const [totalEvents, setTotalEvents] = useState(0);
-  const [events, setEvents] = useState<Event[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -32,57 +16,17 @@ const EventsPage = () => {
   const order = searchParams.get("order") || "asc";
   const genre = searchParams.get("genre") || "";
   const page = Number(searchParams.get("page")) || 1;
-  const [totalPages, setTotalPages] = useState(1);
   const sortValue = sort ? `${sort}-${order}` : "relevance";
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, isError } = useEvents({
+    sort,
+    order,
+    genre,
+    page,
+  });
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      setLoading(true);
-
-      try {
-        const params = new URLSearchParams();
-
-        if (sort) {
-          params.append("sort", sort);
-          params.append("order", order);
-        }
-
-        if (genre) {
-          params.append("genre", genre);
-        }
-
-        params.append("page", page.toString());
-
-        const queryString = params.toString();
-
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/event${
-            queryString ? `?${queryString}` : ""
-          }`,
-          {
-            credentials: "include",
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch events: ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        setEvents(result.data);
-        setTotalEvents(result.total);
-        setTotalPages(result.totalPages);
-      } catch (error) {
-        console.error("Error fetching events:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEvents();
-  }, [sort, order, genre, page]);
+  const events = data?.data ?? [];
+  const totalEvents = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
 
   const handleSortChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -225,8 +169,12 @@ const EventsPage = () => {
       )}
       {/* Event Grid */}
       <div className={styles.eventGrid}>
-        {loading ? (
+        {isError ? (
+          <p>Failed to load events. Please try again.</p>
+        ) : isLoading ? (
           <EventCardSkeleton count={6} />
+        ) : events.length === 0 ? (
+          <p>No events found.</p>
         ) : (
           events.map((event) => {
             const imageUrl = getImageUrl(event.images?.[0]);

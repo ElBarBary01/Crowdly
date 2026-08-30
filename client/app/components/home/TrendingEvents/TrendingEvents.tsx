@@ -42,7 +42,11 @@ export default function TrendingEvents() {
             eventId={event.id}
             imageSrc={event.images?.[0]}
             title={event.title}
-            date={event.date}
+            date={new Date(event.date).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}
             Venue={event.venue.name}
             price={`$${event.tickets[0]?.price ?? 0}`}
             size="compact"

@@ -8,6 +8,7 @@ import TrendingCarousel from "../components/home/TrendingCarousel/TrendingCarous
 import Skeleton from "../components/ui/skeleton/Skeleton";
 import BrowseByGenre from "../components/home/BrowseByGenre/BrowseByGenre";
 import TrendingEvents from "../components/home/TrendingEvents/TrendingEvents";
+import FeaturedArtists from "../components/home/FeaturedArtists/FeaturedArtists";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -53,6 +54,7 @@ export default function HomePage() {
       <TrendingCarousel />
       <TrendingEvents />
       <BrowseByGenre />
+      <FeaturedArtists />
     </div>
   );
 }

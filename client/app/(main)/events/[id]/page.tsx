@@ -13,56 +13,20 @@ import Stage, {
   type StageSection,
 } from "../../../components/ui/stage";
 import { useParams, useRouter } from "next/navigation";
-type Event = {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  genres: string[];
-  description: string | null;
-  images: string[];
-  venue: {
-    id: string;
-    name: string;
-    stageType: StageType;
-    description: string | null;
-    capacity: number;
-    location: string;
-    images: string[];
-    amenities: string[];
-    policies: string[];
-    seatingChartImage: string | null;
-    ticketsLeft: number;
-    stageSections: StageSection[];
-  };
-  tickets: {
-    type: TicketType;
-    price: number;
-    quantity: number;
-    description: string | null;
-  }[];
-  artists: {
-    artist: {
-      id: string;
-      name: string;
-    };
-  }[];
-};
+import { useRelatedEvents } from "../../../hooks/events/use-related-events";
+import { useEvent } from "../../../hooks/events/use-event";
 
 export default function EventPage() {
   const params = useParams();
   const id = params.id as string;
-
-  const [event, setEvent] = useState<Event | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<
     "overview" | "seating-chart" | "venue-info" | "reviews"
   >("overview");
   const [selectedTicket, setSelectedTicket] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [relatedEvents, setRelatedEvents] = useState<Event[]>([]);
   const router = useRouter();
+  const { data: relatedEvents = [] } = useRelatedEvents(id);
+  const { data: event, isLoading, isError, error } = useEvent(id);
 
   const getImageUrl = (image?: string) => {
     if (!image) return "";
@@ -104,84 +68,22 @@ export default function EventPage() {
       minute: "2-digit",
     });
   };
-
-  useEffect(() => {
-    const fetchEvent = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/event/${id}`,
-          {
-            credentials: "include",
-          },
-        );
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error("Event not found");
-          }
-
-          throw new Error("Failed to fetch event");
-        }
-
-        const result = await response.json();
-
-        setEvent(result.data);
-      } catch (error) {
-        console.error("Error fetching event:", error);
-
-        setError(
-          error instanceof Error ? error.message : "Failed to load event",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchEvent();
-    }
-  }, [id]);
-  useEffect(() => {
-    const fetchRelatedEvents = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/event/${id}/related`,
-          {
-            credentials: "include",
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch related events");
-        }
-
-        const result = await response.json();
-
-        setRelatedEvents(result.data || []);
-      } catch (error) {
-        console.error("Error fetching related events:", error);
-      }
-    };
-
-    if (id) {
-      fetchRelatedEvents();
-    }
-  }, [id]);
   useEffect(() => {
     window.scrollTo({
       top: 0,
       behavior: "smooth",
     });
   }, [id]);
-  if (loading) {
+  if (isLoading) {
     return <div className={styles.loading}>Loading event...</div>;
   }
 
-  if (error) {
-    return <div className={styles.error}>{error}</div>;
+  if (isError) {
+    return (
+      <div className={styles.error}>
+        {error instanceof Error ? error.message : "Failed to load event"}
+      </div>
+    );
   }
 
   if (!event) {

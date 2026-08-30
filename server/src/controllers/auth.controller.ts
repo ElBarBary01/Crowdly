@@ -250,7 +250,6 @@ export async function login(req: Request, res: Response) {
   });
 }
 
-
 export async function forgotPassword(req: Request, res: Response) {
   const { email } = req.body;
 
@@ -270,10 +269,7 @@ export async function forgotPassword(req: Request, res: Response) {
     });
   }
 
-  const resetToken = signToken(
-  { userId: user.id },
-  { expiresIn: "15m" },
-);
+  const resetToken = signToken({ userId: user.id }, { expiresIn: "15m" });
 
   const resetUrl = `${FRONTEND_URL}/reset-password?token=${resetToken}`;
 
@@ -290,8 +286,6 @@ export async function forgotPassword(req: Request, res: Response) {
       "If an account exists with this email, a reset link has been sent.",
   });
 }
-
-
 
 export async function resetPassword(req: Request, res: Response) {
   const { token, password } = req.body;
@@ -350,7 +344,7 @@ export async function me(req: Request, res: Response) {
 
   const user = await prisma.user.findUnique({
     where: { id: authReq.user.userId },
-    select: { id: true, name: true, email: true, profileImage: true },
+    select: { id: true, name: true, email: true },
   });
 
   if (!user) {

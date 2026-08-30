@@ -82,7 +82,9 @@ const getLatestEventsHandler = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error fetching latest events:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch latest events" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch latest events" });
   }
 };
 

@@ -1,12 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { loadStripe, Stripe as StripeLib } from "@stripe/stripe-js";
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 import Button from "../../components/ui/Button";
 import Checkbox from "../../components/ui/Checkbox/Checkbox";
 import InputField from "../../components/ui/InputField";
 import ProgressStepper from "../../components/ui/feedbackComponents/progressStepper";
+import PaymentForm from "./PaymentForm";
 import "./TicketBuying.css";
 import { useRouter, useSearchParams } from "next/navigation";
+
+// Initialize Stripe promise outside component
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
+);
 
 type CheckoutState = "tickets" | "account" | "payment" | "confirmation";
 type AddOnId = "parking" | "merch" | "lounge";
@@ -188,23 +201,35 @@ export default function TicketBuying() {
   const eventId = searchParams.get("eventId");
   const ticketType = searchParams.get("ticketType");
   const quantity = Number(searchParams.get("quantity") || 1);
+
+  console.log(
+    "URL params - eventId:",
+    eventId,
+    "ticketType:",
+    ticketType,
+    "quantity:",
+    quantity,
+  );
   const [currentState, setCurrentState] = useState<CheckoutState>("tickets");
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnId[]>([]);
   const [promoCode, setPromoCode] = useState("");
   const [promoApplied, setPromoApplied] = useState(false);
   const [event, setEvent] = useState<EventData | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const selectedTicket = event?.tickets.find(
     (ticket) => ticket.type === ticketType,
   );
-
-  console.log("event:", event);
-  console.log("ticketType:", ticketType);
-  console.log("selectedTicket:", selectedTicket);
   useEffect(() => {
-    if (!eventId) return;
+    if (!eventId) {
+      console.log("No eventId provided");
+      return;
+    }
 
     const fetchEvent = async () => {
       try {
+        console.log("Fetching event:", eventId);
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/event/${eventId}`,
           {
@@ -212,10 +237,14 @@ export default function TicketBuying() {
           },
         );
 
+        console.log("Event fetch status:", response.status);
         const result = await response.json();
 
         if (result.success) {
+          console.log("✓ Event loaded:", result.data.title);
           setEvent(result.data);
+        } else {
+          console.log("✗ Event fetch failed:", result);
         }
       } catch (error) {
         console.error("Failed to fetch event:", error);
@@ -224,6 +253,30 @@ export default function TicketBuying() {
 
     fetchEvent();
   }, [eventId]);
+
+  // Debug auth status
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/user`,
+          {
+            credentials: "include",
+          },
+        );
+        console.log("Auth check - Status:", response.status);
+        const data = await response.json();
+        if (response.ok) {
+          console.log("✓ Authenticated as:", data.data?.email || "Unknown");
+        } else {
+          console.log("✗ Not authenticated:", data);
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+      }
+    };
+    checkAuth();
+  }, []);
   const baseTicketPrice = selectedTicket?.price ?? 0;
 
   const addOnTotal = addOns
@@ -258,6 +311,53 @@ export default function TicketBuying() {
     };
     if (currentState !== "tickets")
       setCurrentState(previousState[currentState]);
+  };
+
+  const handleContinueToPayment = async () => {
+    try {
+      setIsProcessing(true);
+
+      if (!event || !selectedTicket) {
+        setPaymentError("Event or ticket information missing");
+        return;
+      }
+
+      // Create order on backend
+      const orderResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/order`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            eventId,
+            tickets: [
+              {
+                type: selectedTicket.type,
+                price: selectedTicket.price,
+                quantity,
+                eventId,
+              },
+            ],
+            addOns: selectedAddOns,
+          }),
+        },
+      );
+
+      if (!orderResponse.ok) {
+        throw new Error("Failed to create order");
+      }
+
+      const { data } = await orderResponse.json();
+      setOrderId(data.id);
+      setCurrentState("payment");
+    } catch (error) {
+      setPaymentError(
+        error instanceof Error ? error.message : "Failed to create order",
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -419,67 +519,51 @@ export default function TicketBuying() {
                     </Button>
                     <Button
                       size="lg"
-                      onClick={() => setCurrentState("payment")}
+                      onClick={handleContinueToPayment}
+                      disabled={isProcessing}
                     >
-                      Continue to Payment
+                      {isProcessing
+                        ? "Creating order..."
+                        : "Continue to Payment"}
                     </Button>
                   </div>
+                  {paymentError && (
+                    <p style={{ color: "red", marginTop: "1rem" }}>
+                      {paymentError}
+                    </p>
+                  )}
                 </section>
               )}
 
               {currentState === "payment" && (
                 <section>
                   <h1>Payment</h1>
-                  <div className="ticket-buying__wallets">
-                    <Button variant="secondary-neutral" size="md">
-                      ● Apple Pay
-                    </Button>
-                    <Button variant="secondary-neutral" size="md">
-                      G Google Pay
-                    </Button>
-                    <Button variant="secondary-neutral" size="md">
-                      P PayPal
-                    </Button>
-                  </div>
-                  <div className="ticket-buying__divider">
-                    <span>or pay with card</span>
-                  </div>
-                  <div className="ticket-buying__form ticket-buying__form--payment">
-                    <InputField
-                      label="Card Number"
-                      inputMode="numeric"
-                      defaultValue="4242 4242 4242 4242"
+                  <Elements stripe={stripePromise}>
+                    <PaymentForm
+                      orderId={orderId}
+                      checkoutTotal={checkoutTotal}
+                      isProcessing={isProcessing}
+                      onSuccess={() => setCurrentState("confirmation")}
+                      onError={setPaymentError}
                     />
-                    <InputField label="Expiry" placeholder="MM / YY" />
-                    <InputField
-                      label="CVC"
-                      inputMode="numeric"
-                      defaultValue="123"
-                    />
-                    <InputField
-                      label="Cardholder Name"
-                      defaultValue="Alex Rivera"
-                    />
-                  </div>
+                  </Elements>
                   <p className="ticket-buying__secure">
                     <span aria-hidden="true">▣</span>Your payment is secured
                     with 256-bit SSL encryption
                   </p>
-                  <div className="ticket-buying__navigation-actions">
-                    <Button
-                      variant="secondary-neutral"
-                      size="lg"
-                      onClick={goBack}
-                    >
-                      ← Back
-                    </Button>
-                    <Button
-                      size="lg"
-                      onClick={() => setCurrentState("confirmation")}
-                    >
-                      Pay ${checkoutTotal.toFixed(2)}
-                    </Button>
-                  </div>
+                  <Button
+                    variant="secondary-neutral"
+                    size="lg"
+                    onClick={goBack}
+                    style={{ marginTop: "1rem" }}
+                  >
+                    ← Back
+                  </Button>
+                  {paymentError && (
+                    <p style={{ color: "red", marginTop: "1rem" }}>
+                      {paymentError}
+                    </p>
+                  )}
                 </section>
               )}
             </main>

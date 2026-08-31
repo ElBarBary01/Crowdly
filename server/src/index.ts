@@ -14,7 +14,7 @@ import cors from "cors";
 
 const app: Application = express();
 const PORT = process.env.PORT || 3001;
-const clientURL = process.env.CLIENT_URL || "http://localhost:3000";
+const clientURL = process.env.FRONTEND_URL || "http://localhost:3000";
 
 // Stripe webhook raw-body middleware
 // Stripe's signature verification requires the raw body string.
@@ -39,7 +39,7 @@ const stripeRawBodyParser = (
 app.use(express.json());
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: clientURL,
     credentials: true,
   }),
 );
@@ -56,10 +56,6 @@ app.use("/payments", paymentRoutes);
 // Auth routes (no auth required)
 app.use("/auth", authRoutes);
 
-// Auth middleware — all routes below require authentication
-app.use(requireAuth);
-
-app.use("/user", userRoutes);
 app.use("/home", homeRoutes);
 app.use("/venue", venueRoutes);
 app.use("/artist", artistRoutes);

@@ -15,6 +15,7 @@ import ProgressStepper from "../../components/ui/feedbackComponents/progressStep
 import PaymentForm from "./PaymentForm";
 import "./TicketBuying.css";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useUser } from "@/app/hooks/user/use-user";
 
 // Initialize Stripe promise outside component
 const stripePromise = loadStripe(
@@ -221,6 +222,15 @@ export default function TicketBuying() {
   const selectedTicket = event?.tickets.find(
     (ticket) => ticket.type === ticketType,
   );
+  const { data: user, isLoading, isError } = useUser();
+  const isSignedIn = Boolean(user) && !isLoading && !isError;
+  const userName = user?.name ?? "";
+  const userNameParts = userName.trim().split(/\s+/).filter(Boolean);
+  const userFirstName = userNameParts[0] ?? "";
+  const userLastName = userNameParts.slice(1).join(" ") ?? "";
+  const userEmail = user?.email ?? "";
+  const userPhone = user?.phone ?? "";
+
   useEffect(() => {
     if (!eventId) {
       console.log("No eventId provided");
@@ -313,6 +323,15 @@ export default function TicketBuying() {
       setCurrentState(previousState[currentState]);
   };
 
+  const handleLoginRedirect = () => {
+    if (typeof window === "undefined") return;
+
+    const returnUrl = `${window.location.pathname}${window.location.search}`;
+
+    sessionStorage.setItem("returnToAfterLogin", returnUrl);
+    router.push(`/login?redirect=${encodeURIComponent(returnUrl)}`);
+  };
+
   const handleContinueToPayment = async () => {
     try {
       setIsProcessing(true);
@@ -388,7 +407,7 @@ export default function TicketBuying() {
             </div>
             <h1>You&apos;re going!</h1>
             <p>
-              Tickets for <strong>The Weeknd — After Hours Til Dawn</strong>{" "}
+              Tickets for <strong>The Weeknd — After Hours Till Dawn</strong>{" "}
               confirmed.
             </p>
             <div className="ticket-buying__order-number">
@@ -410,16 +429,15 @@ export default function TicketBuying() {
             </article>
             <div className="ticket-buying__ticket-actions">
               <Button variant="secondary-neutral" size="sm">
-                📱 Add to Wallet
-              </Button>
-              <Button variant="secondary-neutral" size="sm">
                 📄 Download PDF
               </Button>
               <Button variant="secondary-neutral" size="sm">
                 ✉️ Email Ticket
               </Button>
             </div>
-            <Button size="lg">View My Tickets</Button>
+            <Button size="lg" onClick={() => router.push("/user/tickets")}>
+              View My Tickets
+            </Button>
           </section>
         ) : (
           <div className="ticket-buying__layout">
@@ -484,29 +502,37 @@ export default function TicketBuying() {
               {currentState === "account" && (
                 <section>
                   <h1>Account Info</h1>
-                  <article className="ticket-buying__account-choice">
-                    <h2>Already have an account?</h2>
-                    <div>
-                      <Button variant="secondary" size="sm">
-                        Log in
-                      </Button>
-                      <Button variant="secondary-neutral" size="sm">
-                        Continue as Guest
-                      </Button>
-                    </div>
-                  </article>
+                  {!user && (
+                    <article className="ticket-buying__account-choice">
+                      <h2>Already have an account?</h2>
+                      <div>
+                        <Button variant="secondary" size="sm">
+                          Log in
+                        </Button>
+                        <Button variant="secondary-neutral" size="sm">
+                          Continue as Guest
+                        </Button>
+                      </div>
+                    </article>
+                  )}
                   <div className="ticket-buying__form ticket-buying__form--account">
-                    <InputField label="First Name" defaultValue="Alex" />
-                    <InputField label="Last Name" defaultValue="Rivera" />
+                    <InputField
+                      label="First Name"
+                      defaultValue={userFirstName || "John"}
+                    />
+                    <InputField
+                      label="Last Name"
+                      defaultValue={userLastName || "Doe"}
+                    />
                     <InputField
                       label="Email Address"
                       type="email"
-                      defaultValue="alex@example.com"
+                      defaultValue={userEmail || "John.doe@gmail.com"}
                     />
                     <InputField
                       label="Phone (optional)"
                       type="tel"
-                      defaultValue="+1 (555) 000-0000"
+                      defaultValue={userPhone || "+1 (555) 000-0000"}
                     />
                   </div>
                   <div className="ticket-buying__navigation-actions">

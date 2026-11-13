@@ -112,7 +112,9 @@ export default function EventPage() {
 
   const availabilityLabel =
     ticketsLeft === 0
-      ? "Sold Out"
+      ? event.reservedQuantity
+        ? "Reserved"
+        : "Sold Out"
       : availabilityPercentage <= 10
         ? "Few Left"
         : "Available";
@@ -142,7 +144,7 @@ export default function EventPage() {
           variant={
             availabilityLabel === "Sold Out"
               ? "error"
-              : availabilityLabel === "Few Left"
+              : ["Few Left", "Reserved"].includes(availabilityLabel)
                 ? "warning"
                 : "success"
           }

@@ -1,3 +1,4 @@
+import { requireOrderOwner } from "../middleware/auth.middleware";
 import express from "express";
 import {
   getOrdersHandler,
@@ -11,10 +12,10 @@ import {
 const router = express.Router();
 
 router.get("/", getOrdersHandler);
-router.get("/:id", getOrderByIdHandler);
+router.get("/:id", requireOrderOwner, getOrderByIdHandler);
 router.post("/", createOrderHandler);
 router.get("/user/:userId", getOrdersByUserIdHandler);
-router.put("/:id", updateOrderHandler);
-router.delete("/:id", deleteOrderHandler);
+router.put("/:id", requireOrderOwner, updateOrderHandler);
+router.delete("/:id", requireOrderOwner, deleteOrderHandler);
 
 export default router;

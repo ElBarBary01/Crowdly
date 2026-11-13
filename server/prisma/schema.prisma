@@ -2,8 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider            = "prisma-client"
+  output              = "../generated/prisma"
   importFileExtension = "js"
 }
 
@@ -11,6 +11,7 @@ datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
+
 ////////////////////////////////////////////////////////////////////////////////////
 
 // Enums
@@ -44,15 +45,32 @@ enum OrderStatus {
   ACCOUNT_INFO
   PAYMENT
   CONFIRMATION
+  EXPIRED
+  CANCELLED
+  PAYMENT_REVIEW
 }
 
 enum PaymentStatus {
   NOT_STARTED
   PENDING
   SUCCEEDED
+  PARTIALLY_REFUNDED
   FAILED
   CANCELLED
   REFUNDED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum RefundStatus {
+  CREATED
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
 }
 
 enum PaymentProvider {
@@ -72,6 +90,7 @@ enum PaymentMethod {
   GOOGLE_PAY
   PAYPAL
 }
+
 ////////////////////////////////////////////////////////////////////////////////////
 
 // Types
@@ -109,21 +128,23 @@ type OrderEvent {
   venueId   String
   venueName String
 }
+
 ////////////////////////////////////////////////////////////////////////////////////
 
 // Models
 
 // User
 model User {
-  id           String    @id @default(uuid()) @map("_id")
+  id           String   @id @default(uuid()) @map("_id")
   name         String
-  email        String    @unique
+  email        String   @unique
+  role         UserRole @default(USER)
   password     String
   phone        String?
   address      String?
   profileImage String?
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   emailVerified           Boolean   @default(false)
   verificationCodeHash    String?
@@ -176,17 +197,17 @@ model EventArtist {
 
 // Event
 model Event {
-  id          String        @id @default(uuid()) @map("_id")
-  title       String
-  date        DateTime
-  time        String
-  genres      Genre[]
-  artists     EventArtist[]
-  venueId     String
-  venue       Venue         @relation("VenueEvents", fields: [venueId], references: [id])
-  tickets     Ticket[]
-  images      String[]
-  description String?
+  id                String        @id @default(uuid()) @map("_id")
+  title             String
+  date              DateTime
+  time              String
+  genres            Genre[]
+  artists           EventArtist[]
+  venueId           String
+  venue             Venue         @relation("VenueEvents", fields: [venueId], references: [id])
+  tickets           Ticket[]
+  images            String[]
+  description       String?
   // All reservation writers modify this document to serialize stock decisions.
   inventoryRevision String?
 
@@ -196,15 +217,27 @@ model Event {
 
 // Order
 model Order {
-  id            String        @id @default(uuid()) @map("_id")
-  userId        String
-  user          User          @relation(fields: [userId], references: [id])
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
-  status        OrderStatus   @default(TICKET_SELECTION)
-  paymentStatus PaymentStatus @default(NOT_STARTED)
-  serviceFee    Float         @default(0)
-  expiresAt     DateTime?
+  id                  String        @id @default(uuid()) @map("_id")
+  userId              String
+  user                User          @relation(fields: [userId], references: [id])
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+  status              OrderStatus   @default(TICKET_SELECTION)
+  paymentStatus       PaymentStatus @default(NOT_STARTED)
+  serviceFee          Float         @default(0)
+  expiresAt           DateTime?
+  subtotalAmount      Int?
+  addOnAmount         Int?
+  feeAmount           Int?
+  discountAmount      Int?
+  totalAmount         Int?
+  currency            String        @default("usd")
+  addOns              String[]
+  promoCode           String?
+  paidAttemptId       String?
+  ticketsCancelledAt  DateTime?
+  inventoryReturnedAt DateTime?
+  nextPaymentCheckAt  DateTime?     @default(now())
 
   // Embedded event data snapshot at time of order
   events OrderEvent[]
@@ -215,22 +248,23 @@ model Order {
   // Computed total
   totalPrice Float
 
-  payments PaymentAttempt[]
+  payments     PaymentAttempt[]
   reservations TicketReservation[]
 
+  @@index([nextPaymentCheckAt])
   @@map("orders")
 }
 
 model TicketReservation {
-  id        String @id @default(uuid()) @map("_id")
-  orderId   String
-  order     Order @relation(fields: [orderId], references: [id])
-  eventId   String
+  id         String            @id @default(uuid()) @map("_id")
+  orderId    String
+  order      Order             @relation(fields: [orderId], references: [id])
+  eventId    String
   ticketType TicketType
-  quantity  Int
-  expiresAt DateTime
-  status    ReservationStatus @default(HELD)
-  createdAt DateTime @default(now())
+  quantity   Int
+  expiresAt  DateTime
+  status     ReservationStatus @default(HELD)
+  createdAt  DateTime          @default(now())
 
   @@unique([orderId, eventId, ticketType])
   @@index([eventId, status, expiresAt])
@@ -238,22 +272,67 @@ model TicketReservation {
 }
 
 model PaymentAttempt {
-  id    String @id @default(uuid()) @map("_id")
+  id      String @id @default(uuid()) @map("_id")
   orderId String
   order   Order  @relation(fields: [orderId], references: [id])
 
   provider          PaymentProvider
-  providerReference String @unique
+  providerReference String          @unique
   providerSessionId String?
   paymentIntentId   String?
 
-  method   PaymentMethod?
-  amount   Float
-  currency String        @default("usd")
-  status   PaymentStatus
+  method           PaymentMethod?
+  amount           Float
+  amountMinor      Int?
+  refundedAmount   Int            @default(0)
+  refundRevision   String?
+  needsRefund      Boolean        @default(false)
+  fulfillmentError String?
+  currency         String         @default("usd")
+  status           PaymentStatus
+  refunds          Refund[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([orderId])
+}
+
+model CheckoutRequest {
+  id          String   @id @map("_id")
+  fingerprint String
+  orderId     String
+  createdAt   DateTime @default(now())
+}
+
+model StripeWebhookEvent {
+  id            String    @id @map("_id")
+  type          String
+  payload       Json
+  processedAt   DateTime?
+  nextAttemptAt DateTime  @default(now())
+  lastError     String?
+  createdAt     DateTime  @default(now())
+
+  @@index([processedAt, nextAttemptAt])
+}
+
+model Refund {
+  id               String         @id @default(uuid()) @map("_id")
+  paymentAttemptId String
+  paymentAttempt   PaymentAttempt @relation(fields: [paymentAttemptId], references: [id])
+  requestKey       String         @unique
+  amount           Int
+  currency         String
+  restockTickets   Boolean        @default(false)
+  restockPending   Boolean        @default(false)
+  stripeRefundId   String?
+  status           RefundStatus   @default(CREATED)
+  nextAttemptAt    DateTime       @default(now())
+  lastError        String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([stripeRefundId])
 }

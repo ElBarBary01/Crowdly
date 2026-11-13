@@ -31,3 +31,10 @@ Reservation tests also cover concurrent claims for the last ticket, aggregated
 quantities, multi-event rollback, query-time expiry, and stock protected during
 Stripe creation/cancellation failures. Stripe API calls in these tests are
 stubbed; inventory and transaction behavior run against the real replica set.
+
+Recovery and refund cases cover prepared intents after a lost response, missed
+webhooks, cancellation racing success, persisted receipt retries, partial/full
+refunds, refund allocation races, and exactly-once restocking. Permission tests
+exercise anonymous, owner, other-customer, and administrator HTTP requests. Stripe
+creation/retrieval/refund calls are blocked unless a test explicitly supplies a
+fixture, keeping these checks independent of external accounts.

@@ -2,6 +2,8 @@ import type { EventTicket, StageVenue } from "../components/ui/stage/types";
 
 export type Event = {
   id: string;
+  reservedQuantity?: number;
+  availableQuantity?: number;
   title: string;
   description: string | null;
   date: string;

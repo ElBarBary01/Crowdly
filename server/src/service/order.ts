@@ -1,3 +1,5 @@
+import { createHash, randomUUID } from "node:crypto";
+import { priceOrder, normalizeTickets } from "./pricing";
 import {
   HOLD_DURATION_MS,
   inventoryTransaction,
@@ -13,39 +15,53 @@ import {
 } from "../../generated/prisma/enums";
 
 export async function createOrder(dto: CreateOrderDto) {
-  if (!Array.isArray(dto.tickets) || dto.tickets.length === 0)
-    throw new ReservationError("At least one ticket is required");
-  const lines = new Map<
-    string,
-    { eventId: string; type: TicketTypeEnum; quantity: number }
-  >();
-  for (const ticket of dto.tickets) {
-    if (
-      !ticket ||
-      typeof ticket.eventId !== "string" ||
-      !ticket.eventId ||
-      typeof ticket.type !== "string" ||
-      !Number.isSafeInteger(ticket.quantity) ||
-      ticket.quantity <= 0
-    )
-      throw new ReservationError(
-        "Tickets require an event, category, and positive integer quantity",
-      );
-    const type = ticket.type.toUpperCase() as TicketTypeEnum;
-    if (!Object.values(TicketTypeEnum).includes(type))
-      throw new ReservationError("Invalid ticket category");
-    const key = ticket.eventId + ":" + type;
-    const quantity = (lines.get(key)?.quantity ?? 0) + ticket.quantity;
-    if (!Number.isSafeInteger(quantity))
-      throw new ReservationError("Ticket quantity is too large");
-    lines.set(key, { eventId: ticket.eventId, type, quantity });
-  }
+  const lines = normalizeTickets(dto.tickets);
+  if (
+    (dto.addOns !== undefined && !Array.isArray(dto.addOns)) ||
+    (dto.promoCode !== undefined && typeof dto.promoCode !== "string")
+  )
+    throw new ReservationError("Invalid add-ons or promo code");
   // Fees will be calculated by the pricing service; clients cannot set a fee.
   if (dto.serviceFee !== undefined && dto.serviceFee !== 0)
     throw new ReservationError(
       "Service fees cannot be supplied by the customer",
     );
+  if (
+    dto.requestId !== undefined &&
+    (typeof dto.requestId !== "string" ||
+      dto.requestId.length < 8 ||
+      dto.requestId.length > 128)
+  )
+    throw new ReservationError("A valid checkout request ID is required");
+  const requestKey = createHash("sha256")
+    .update(dto.userId + ":" + (dto.requestId ?? randomUUID()))
+    .digest("hex");
+  const fingerprint = createHash("sha256")
+    .update(
+      JSON.stringify({
+        tickets: [...lines.values()].sort((a, b) =>
+          (a.eventId + a.type).localeCompare(b.eventId + b.type),
+        ),
+        addOns: [...new Set(dto.addOns ?? [])].sort(),
+        promoCode: dto.promoCode?.trim().toUpperCase() || "",
+      }),
+    )
+    .digest("hex");
   return inventoryTransaction(async (tx) => {
+    const existing = await tx.checkoutRequest.findUnique({
+      where: { id: requestKey },
+    });
+    if (existing) {
+      if (existing.fingerprint !== fingerprint)
+        throw new ReservationError(
+          "Checkout request ID was already used for a different cart",
+        );
+      return tx.order.findUniqueOrThrow({ where: { id: existing.orderId } });
+    }
+    const orderId = randomUUID();
+    await tx.checkoutRequest.create({
+      data: { id: requestKey, fingerprint, orderId },
+    });
     const eventIds = [
       ...new Set([...lines.values()].map((line) => line.eventId)),
     ];
@@ -73,20 +89,16 @@ export async function createOrder(dto: CreateOrderDto) {
       }
       return { ...line, price: ticket.price };
     });
-    const totalPrice =
-      tickets.reduce(
-        (sum, ticket) => sum + Math.round(ticket.price * 100) * ticket.quantity,
-        0,
-      ) / 100;
+    const pricing = priceOrder(tickets, dto.addOns, dto.promoCode);
     return tx.order.create({
       data: {
+        id: orderId,
         userId: dto.userId,
         createdAt: now,
         expiresAt,
         status: OrderStatusEnum.TICKET_SELECTION,
         paymentStatus: "NOT_STARTED",
-        serviceFee: 0,
-        totalPrice,
+        ...pricing,
         tickets,
         events: events.map((event) => ({
           id: event.id,

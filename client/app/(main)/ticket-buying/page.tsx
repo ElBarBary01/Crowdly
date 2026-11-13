@@ -1,383 +1,341 @@
 "use client";
-
-import { useEffect, useState } from "react";
-import { loadStripe, Stripe as StripeLib } from "@stripe/stripe-js";
-import {
-  Elements,
-  CardElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
-import Button from "../../components/ui/Button";
-import Checkbox from "../../components/ui/Checkbox/Checkbox";
-import InputField from "../../components/ui/InputField";
-import ProgressStepper from "../../components/ui/feedbackComponents/progressStepper";
-import PaymentForm from "./PaymentForm";
-import "./TicketBuying.css";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@/app/hooks/user/use-user";
+import Button from "../../components/ui/Button";
+import PaymentForm from "./PaymentForm";
+import "./TicketBuying.css";
 
-// Initialize Stripe promise outside component
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
-);
-
-type CheckoutState = "tickets" | "account" | "payment" | "confirmation";
-type AddOnId = "parking" | "merch" | "lounge";
-
-type AddOn = {
-  id: AddOnId;
+const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
+const api = process.env.NEXT_PUBLIC_API_URL;
+type Pricing = {
+  subtotalAmount: number;
+  addOnAmount: number;
+  feeAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  currency: string;
+};
+type CheckoutOrder = Pricing & {
+  id: string;
+  status: string;
+  paymentStatus: string;
+  expiresAt: string | null;
+  serverNow: string;
+  confirmed: boolean;
+  expired: boolean;
+  ticketsCancelledAt: string | null;
+  events: { title: string; venueName: string; date: string }[];
+};
+type CatalogItem = {
+  id: string;
   name: string;
   description: string;
-  price: number;
+  amount: number;
 };
-type Ticket = {
-  type: string;
-  price: number;
-  quantity: number;
-  description: string | null;
-};
-
-type EventData = {
+type Event = {
   title: string;
   date: string;
   images: string[];
-  tickets: Ticket[];
-  venue: {
-    name: string;
-  };
+  tickets: { type: string; price: number; quantity: number }[];
+  venue: { name: string };
 };
-type OrderSummaryProps = {
-  total: number;
-  showPromo: boolean;
-  promoCode: string;
-  promoApplied: boolean;
-  ticketName: string;
-  quantity: number;
-  eventTitle: string;
-  eventDate: string;
-  eventImage: string;
-  onPromoCodeChange: (value: string) => void;
-  onApplyPromo: () => void;
-};
-
-const checkoutSteps = [
-  { id: "tickets", label: "Ticket Selection" },
-  { id: "account", label: "Account Info" },
-  { id: "payment", label: "Payment" },
-  { id: "confirmation", label: "Confirmation" },
-] as const;
-
-const addOns: readonly AddOn[] = [
-  {
-    id: "parking",
-    name: "Parking Pass",
-    description: "Reserved parking at the venue",
-    price: 35,
-  },
-  {
-    id: "merch",
-    name: "Merch Bundle",
-    description: "T-shirt + poster + digital download",
-    price: 55,
-  },
-  {
-    id: "lounge",
-    name: "VIP Lounge Upgrade",
-    description: "Exclusive lounge access + open bar",
-    price: 80,
-  },
-];
-
-const stateIndexes: Record<CheckoutState, number> = {
-  tickets: 0,
-  account: 1,
-  payment: 2,
-  confirmation: 3,
-};
-
-const qrCells = [
-  true,
-  false,
-  true,
-  true,
-  true,
-  true,
-  true,
-  false,
-  true,
-  false,
-  true,
-  true,
-  true,
-  false,
-  false,
-  false,
-] as const;
-
-function OrderSummary({
-  total,
-  showPromo,
-  promoCode,
-  promoApplied,
-  ticketName,
-  quantity,
-  eventTitle,
-  eventDate,
-  eventImage,
-  onPromoCodeChange,
-  onApplyPromo,
-}: OrderSummaryProps) {
-  const serviceFee = total * 0.15;
-  const discount = promoApplied ? total * 0.1 : 0;
-
-  return (
-    <aside className="ticket-buying__summary" aria-label="Order summary">
-      <h2>Order Summary</h2>
-      <div className="ticket-buying__event">
-        <img
-          className="ticket-buying__event-art"
-          src={eventImage || "https://placehold.co/64x64"}
-          alt={eventTitle}
-        />
-
-        <div>
-          <strong>{eventTitle}</strong>
-          <span>
-            {ticketName} × {quantity}
-          </span>
-          <time dateTime={eventDate}>
-            {new Date(eventDate).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </time>
-        </div>
-      </div>
-      <dl className="ticket-buying__totals">
-        <div>
-          <dt>
-            {quantity}x {ticketName}
-          </dt>
-          <dd>${total.toFixed(2)}</dd>
-        </div>
-        <div>
-          <dt>Service fee (15%)</dt>
-          <dd>${serviceFee.toFixed(2)}</dd>
-        </div>
-        {promoApplied && (
-          <div className="ticket-buying__discount">
-            <dt>Promo (STAGEFRONT10)</dt>
-            <dd>−${discount.toFixed(2)}</dd>
-          </div>
-        )}
-        <div className="ticket-buying__total">
-          <dt>Total</dt>
-          <dd>${(total + serviceFee - discount).toFixed(2)}</dd>
-        </div>
-      </dl>
-      {showPromo && !promoApplied && (
-        <div className="ticket-buying__promo">
-          <input
-            aria-label="Promo code"
-            value={promoCode}
-            onChange={(event) =>
-              onPromoCodeChange(event.target.value.toUpperCase())
-            }
-            placeholder="Promo code"
-          />
-          <Button variant="secondary-neutral" size="sm" onClick={onApplyPromo}>
-            Apply
-          </Button>
-        </div>
-      )}
-    </aside>
+type Saved = { requestId: string; orderId?: string; cart?: string };
+const usd = (amount: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+    amount / 100,
   );
+async function request<T>(
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  const response = await fetch(api + path, {
+    method: body === undefined ? "GET" : "POST",
+    credentials: "include",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    signal,
+  });
+  const result = await response.json();
+  if (!response.ok)
+    throw new Error(
+      result.message || result.error || "Unable to complete the request",
+    );
+  return result.data ?? result;
+}
+function save(key: string, value: Saved) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* In-memory retry protection still works when storage is unavailable. */
+  }
 }
 
-export default function TicketBuying() {
+function Checkout() {
+  const params = useSearchParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const eventId = searchParams.get("eventId");
-  const ticketType = searchParams.get("ticketType");
-  const quantity = Number(searchParams.get("quantity") || 1);
-
-  console.log(
-    "URL params - eventId:",
-    eventId,
-    "ticketType:",
-    ticketType,
-    "quantity:",
-    quantity,
+  const eventId = params.get("eventId") ?? "";
+  const type = (params.get("ticketType") ?? "").toUpperCase();
+  const quantity = Number(params.get("quantity") || 1);
+  const valid = Boolean(
+    eventId && type && Number.isSafeInteger(quantity) && quantity > 0,
   );
-  const [currentState, setCurrentState] = useState<CheckoutState>("tickets");
-  const [selectedAddOns, setSelectedAddOns] = useState<AddOnId[]>([]);
+  const { data: user, isLoading: userLoading } = useUser();
+  const [event, setEvent] = useState<Event | null>(null);
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [addOns, setAddOns] = useState<string[]>([]);
+  const [promoInput, setPromoInput] = useState("");
   const [promoCode, setPromoCode] = useState("");
-  const [promoApplied, setPromoApplied] = useState(false);
-  const [event, setEvent] = useState<EventData | null>(null);
-  const [orderId, setOrderId] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
-  const selectedTicket = event?.tickets.find(
-    (ticket) => ticket.type === ticketType,
+  const [quoteResult, setQuoteResult] = useState<{
+    cart: string;
+    pricing: Pricing;
+  } | null>(null);
+  const [orderResult, setOrderResult] = useState<{
+    key: string;
+    order: CheckoutOrder;
+  } | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [restoredKey, setRestoredKey] = useState<string | null>(null);
+  const [clock, setClock] = useState(0);
+  const saved = useRef<Saved | null>(null);
+  const [clockOffset, setClockOffset] = useState(0);
+  const cart = JSON.stringify({
+    tickets: [{ eventId, type, quantity }],
+    addOns,
+    promoCode,
+  });
+  // Keep the active order discoverable after refresh, even when local add-on
+  // controls reset. Its frozen server prices override the selection quote.
+  const storageKey = user
+    ? "crowdly-checkout:" + JSON.stringify([user.id, eventId, type, quantity])
+    : "";
+  const order = orderResult?.key === storageKey ? orderResult.order : null;
+  const orderId = order?.id;
+  const quote = quoteResult?.cart === cart ? quoteResult.pricing : null;
+  const restoring = Boolean(storageKey && restoredKey !== storageKey);
+  const acceptOrder = useCallback(
+    (updated: CheckoutOrder) => {
+      setClockOffset(new Date(updated.serverNow).getTime() - Date.now());
+      setOrderResult({ key: storageKey, order: updated });
+      setClock(Date.now());
+    },
+    [storageKey],
   );
-  const { data: user, isLoading, isError } = useUser();
-  const isSignedIn = Boolean(user) && !isLoading && !isError;
-  const userName = user?.name ?? "";
-  const userNameParts = userName.trim().split(/\s+/).filter(Boolean);
-  const userFirstName = userNameParts[0] ?? "";
-  const userLastName = userNameParts.slice(1).join(" ") ?? "";
-  const userEmail = user?.email ?? "";
-  const userPhone = user?.phone ?? "";
 
   useEffect(() => {
-    if (!eventId) {
-      console.log("No eventId provided");
-      return;
+    const controller = new AbortController();
+    if (valid)
+      void request<Event>(
+        "/event/" + encodeURIComponent(eventId),
+        undefined,
+        controller.signal,
+      )
+        .then(setEvent)
+        .catch((reason) => {
+          if (!controller.signal.aborted) setError(reason.message);
+        });
+    void request<{ addOns: CatalogItem[] }>(
+      "/payments/pricing",
+      undefined,
+      controller.signal,
+    )
+      .then((result) => setCatalog(result.addOns))
+      .catch(() => {});
+    return () => controller.abort();
+  }, [eventId, valid]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    if (!valid || order) return;
+    void request<Pricing>(
+      "/payments/quote",
+      JSON.parse(cart),
+      controller.signal,
+    )
+      .then((result) => {
+        setQuoteResult({ cart, pricing: result });
+        setError("");
+      })
+      .catch((reason) => {
+        if (!controller.signal.aborted) setError(reason.message);
+      });
+    return () => controller.abort();
+  }, [cart, valid, order]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function restore() {
+      saved.current = null;
+      if (!storageKey) return;
+      let record: Saved | null = null;
+      try {
+        record = JSON.parse(
+          sessionStorage.getItem(storageKey) || "null",
+        ) as Saved | null;
+      } catch {
+        /* Malformed local storage is discarded. */
+      }
+      if (!record || typeof record.requestId !== "string")
+        record = { requestId: crypto.randomUUID() };
+      saved.current = record;
+      save(storageKey, record);
+      try {
+        let restored: CheckoutOrder | undefined;
+        if (record.orderId)
+          restored = await request<CheckoutOrder>(
+            "/order/" + encodeURIComponent(record.orderId),
+            undefined,
+            controller.signal,
+          );
+        else if (record.cart)
+          restored = await request<CheckoutOrder>(
+            "/order",
+            { ...JSON.parse(record.cart), requestId: record.requestId },
+            controller.signal,
+          );
+        if (restored) {
+          saved.current = { ...record, orderId: restored.id };
+          save(storageKey, saved.current);
+          acceptOrder(restored);
+        }
+      } catch (reason) {
+        if (!controller.signal.aborted)
+          setError(
+            "Could not restore this reservation: " +
+              (reason instanceof Error ? reason.message : "Try again"),
+          );
+      } finally {
+        if (!controller.signal.aborted) setRestoredKey(storageKey);
+      }
     }
+    void restore();
+    return () => controller.abort();
+  }, [storageKey, acceptOrder]);
 
-    const fetchEvent = async () => {
+  const refreshOrder = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!orderId) return;
       try {
-        console.log("Fetching event:", eventId);
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/event/${eventId}`,
-          {
-            credentials: "include",
-          },
+        const updated = await request<CheckoutOrder>(
+          "/payments/status",
+          { orderId },
+          signal,
         );
-
-        console.log("Event fetch status:", response.status);
-        const result = await response.json();
-
-        if (result.success) {
-          console.log("✓ Event loaded:", result.data.title);
-          setEvent(result.data);
-        } else {
-          console.log("✗ Event fetch failed:", result);
-        }
-      } catch (error) {
-        console.error("Failed to fetch event:", error);
+        acceptOrder(updated);
+      } catch (reason) {
+        if (!signal?.aborted)
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : "Payment confirmation is pending. Retrying shortly.",
+          );
       }
-    };
+    },
+    [orderId, acceptOrder],
+  );
 
-    fetchEvent();
-  }, [eventId]);
-
-  // Debug auth status
+  const shouldPoll = Boolean(
+    order &&
+    !order.confirmed &&
+    !["EXPIRED", "CANCELLED"].includes(order.status),
+  );
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/user`,
-          {
-            credentials: "include",
-          },
-        );
-        console.log("Auth check - Status:", response.status);
-        const data = await response.json();
-        if (response.ok) {
-          console.log("✓ Authenticated as:", data.data?.email || "Unknown");
-        } else {
-          console.log("✗ Not authenticated:", data);
-        }
-      } catch (error) {
-        console.error("Auth check error:", error);
+    if (!shouldPoll) return;
+    const controller = new AbortController();
+    let checking = false;
+    const timer = setInterval(() => {
+      if (!checking) {
+        checking = true;
+        void refreshOrder(controller.signal).finally(() => {
+          checking = false;
+        });
       }
+    }, 3000);
+    return () => {
+      clearInterval(timer);
+      controller.abort();
     };
-    checkAuth();
+  }, [shouldPoll, orderId, refreshOrder]);
+  useEffect(() => {
+    const timer = setInterval(() => setClock(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
-  const baseTicketPrice = selectedTicket?.price ?? 0;
 
-  const addOnTotal = addOns
-    .filter((addOn) => selectedAddOns.includes(addOn.id))
-    .reduce((sum, addOn) => sum + addOn.price, 0);
-
-  const ticketTotal = baseTicketPrice * quantity + addOnTotal;
-
-  const checkoutTotal =
-    ticketTotal * 1.15 - (promoApplied ? ticketTotal * 0.1 : 0);
-
-  const toggleAddOn = (id: AddOnId, checked: boolean) => {
-    setSelectedAddOns((selected) =>
-      checked
-        ? [...selected, id]
-        : selected.filter((selectedId) => selectedId !== id),
-    );
-  };
-
-  const goBack = () => {
-    if (currentState === "tickets" && eventId) {
-      router.push(`/events/${eventId}`);
-      return;
-    }
-    const previousState: Record<
-      Exclude<CheckoutState, "tickets">,
-      CheckoutState
-    > = {
-      account: "tickets",
-      payment: "account",
-      confirmation: "payment",
+  const remaining = order?.expiresAt
+    ? Math.max(0, new Date(order.expiresAt).getTime() - clock - clockOffset)
+    : 0;
+  const ended = Boolean(
+    order && (order.expired || ["EXPIRED", "CANCELLED"].includes(order.status)),
+  );
+  const pricing = order ?? quote;
+  const canPay = Boolean(
+    order &&
+    remaining > 0 &&
+    !ended &&
+    !order.confirmed &&
+    order.status !== "PAYMENT_REVIEW",
+  );
+  const reserve = async () => {
+    if (busy || !quote || !user || !valid || !storageKey || restoring) return;
+    setBusy(true);
+    setError("");
+    const record = {
+      ...(saved.current ?? { requestId: crypto.randomUUID() }),
+      cart: saved.current?.cart ?? cart,
     };
-    if (currentState !== "tickets")
-      setCurrentState(previousState[currentState]);
-  };
-
-  const handleLoginRedirect = () => {
-    if (typeof window === "undefined") return;
-
-    const returnUrl = `${window.location.pathname}${window.location.search}`;
-
-    sessionStorage.setItem("returnToAfterLogin", returnUrl);
-    router.push(`/login?redirect=${encodeURIComponent(returnUrl)}`);
-  };
-
-  const handleContinueToPayment = async () => {
+    saved.current = record;
+    save(storageKey, record);
     try {
-      setIsProcessing(true);
-
-      if (!event || !selectedTicket) {
-        setPaymentError("Event or ticket information missing");
-        return;
-      }
-
-      // Create order on backend
-      const orderResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/order`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            eventId,
-            tickets: [
-              {
-                type: selectedTicket.type,
-                price: selectedTicket.price,
-                quantity,
-                eventId,
-              },
-            ],
-            addOns: selectedAddOns,
-          }),
-        },
-      );
-
-      if (!orderResponse.ok) {
-        throw new Error("Failed to create order");
-      }
-
-      const { data } = await orderResponse.json();
-      setOrderId(data.id);
-      setCurrentState("payment");
-    } catch (error) {
-      setPaymentError(
-        error instanceof Error ? error.message : "Failed to create order",
+      const result = await request<CheckoutOrder>("/order", {
+        ...JSON.parse(record.cart),
+        requestId: record.requestId,
+      });
+      save(storageKey, { ...record, orderId: result.id });
+      saved.current = { ...record, orderId: result.id };
+      acceptOrder(result);
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : "Could not reserve tickets",
       );
     } finally {
-      setIsProcessing(false);
+      setBusy(false);
     }
   };
+  const cancel = async () => {
+    if (!order || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await request("/payments/cancel", { orderId: order.id });
+      await refreshOrder();
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : "Cancellation is pending",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+  const startAgain = () => {
+    const record = { requestId: crypto.randomUUID() };
+    saved.current = record;
+    save(storageKey, record);
+    setOrderResult(null);
+    setError("");
+    setVerifying(false);
+  };
+  const login = () =>
+    router.push(
+      "/login?redirect=" +
+        encodeURIComponent(window.location.pathname + window.location.search),
+    );
 
   return (
     <div className="ticket-buying">
@@ -385,259 +343,225 @@ export default function TicketBuying() {
         <header className="ticket-buying__header">
           <button
             className="ticket-buying__back-link"
-            type="button"
-            onClick={goBack}
+            onClick={() => router.push("/events/" + eventId)}
           >
-            ← Back to event
+            Back to event
           </button>
           <h1>Checkout</h1>
         </header>
-
-        <ProgressStepper
-          steps={checkoutSteps}
-          currentStepIndex={stateIndexes[currentState]}
-          ariaLabel="Checkout progress"
-          className="ticket-buying__stepper"
-        />
-
-        {currentState === "confirmation" ? (
-          <section className="ticket-buying__confirmation">
-            <div className="ticket-buying__success" aria-hidden="true">
-              ✓
-            </div>
-            <h1>You&apos;re going!</h1>
-            <p>
-              Tickets for <strong>The Weeknd — After Hours Till Dawn</strong>{" "}
-              confirmed.
-            </p>
-            <div className="ticket-buying__order-number">
-              <span>Order #</span>
-              <strong>ORD-88421</strong>
-            </div>
-            <article className="ticket-buying__ticket">
-              <div className="ticket-buying__qr" aria-label="Ticket QR code">
-                {qrCells.map((filled, index) => (
-                  <span
-                    className={filled ? "ticket-buying__qr-cell--filled" : ""}
-                    key={index}
-                  />
-                ))}
-              </div>
-              <h2>The Weeknd</h2>
-              <p>SoFi Stadium · Sep 12, 2026</p>
-              <small>General Admission · Seat TBD</small>
-            </article>
-            <div className="ticket-buying__ticket-actions">
-              <Button variant="secondary-neutral" size="sm">
-                📄 Download PDF
-              </Button>
-              <Button variant="secondary-neutral" size="sm">
-                ✉️ Email Ticket
-              </Button>
-            </div>
-            <Button size="lg" onClick={() => router.push("/user/tickets")}>
-              View My Tickets
-            </Button>
-          </section>
+        {!valid ? (
+          <p role="alert">
+            Choose an event, ticket category, and valid quantity first.
+          </p>
         ) : (
           <div className="ticket-buying__layout">
             <main className="ticket-buying__main">
-              {currentState === "tickets" && (
-                <section>
-                  <h1>Confirm Your Tickets</h1>
-                  <article className="ticket-buying__ticket-choice">
-                    <div>
-                      <h2>
-                        {selectedTicket?.type
-                          ?.replaceAll("_", " ")
-                          .replace(/\b\w/g, (char) => char.toUpperCase())}
-                      </h2>
-                      <ul>
-                        <li>General Admission</li>
-                        <li>Commemorative poster</li>
-                        <li>Digital ticket</li>
-                      </ul>
-                    </div>
-                    <div className="ticket-buying__price">
-                      <strong>${selectedTicket?.price.toFixed(2)}</strong>
-                      <span>per ticket</span>
-                    </div>
-                  </article>
-                  <h2 className="ticket-buying__section-title">Add-ons</h2>
-                  <div className="ticket-buying__add-ons">
-                    {addOns.map((addOn) => (
-                      <div className="ticket-buying__add-on" key={addOn.id}>
-                        <Checkbox
-                          checked={selectedAddOns.includes(addOn.id)}
-                          onChange={(checked) => toggleAddOn(addOn.id, checked)}
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            toggleAddOn(
-                              addOn.id,
-                              !selectedAddOns.includes(addOn.id),
-                            )
-                          }
-                        >
-                          <span>
-                            <strong>{addOn.name}</strong>
-                            {addOn.description}
-                          </span>
-                          <b>+${addOn.price}</b>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    className="ticket-buying__primary-action"
-                    size="lg"
-                    onClick={() => setCurrentState("account")}
-                  >
-                    Continue to Account Info
-                  </Button>
+              <h2>{event?.title ?? "Loading event..."}</h2>
+              <p>
+                {type.replaceAll("_", " ")} x {quantity}
+              </p>
+              {restoring || userLoading ? (
+                <p role="status">Restoring checkout...</p>
+              ) : order?.confirmed ? (
+                <section className="ticket-buying__confirmation">
+                  <h1>You&apos;re going!</h1>
+                  <p>Your payment and reservation are confirmed.</p>
+                  <p>Order #{order.id}</p>
+                  {order.events.map((item, index) => (
+                    <p key={index}>
+                      {item.title} | {item.venueName} |{" "}
+                      {new Date(item.date).toLocaleDateString()}
+                    </p>
+                  ))}
                 </section>
-              )}
-
-              {currentState === "account" && (
+              ) : ended ? (
                 <section>
-                  <h1>Account Info</h1>
-                  {!user && (
-                    <article className="ticket-buying__account-choice">
-                      <h2>Already have an account?</h2>
-                      <div>
-                        <Button variant="secondary" size="sm">
-                          Log in
-                        </Button>
-                        <Button variant="secondary-neutral" size="sm">
-                          Continue as Guest
-                        </Button>
-                      </div>
-                    </article>
-                  )}
-                  <div className="ticket-buying__form ticket-buying__form--account">
-                    <InputField
-                      label="First Name"
-                      defaultValue={userFirstName || "John"}
-                    />
-                    <InputField
-                      label="Last Name"
-                      defaultValue={userLastName || "Doe"}
-                    />
-                    <InputField
-                      label="Email Address"
-                      type="email"
-                      defaultValue={userEmail || "John.doe@gmail.com"}
-                    />
-                    <InputField
-                      label="Phone (optional)"
-                      type="tel"
-                      defaultValue={userPhone || "+1 (555) 000-0000"}
-                    />
-                  </div>
-                  <div className="ticket-buying__navigation-actions">
-                    <Button
-                      variant="secondary-neutral"
-                      size="lg"
-                      onClick={goBack}
-                    >
-                      ← Back
-                    </Button>
-                    <Button
-                      size="lg"
-                      onClick={handleContinueToPayment}
-                      disabled={isProcessing}
-                    >
-                      {isProcessing
-                        ? "Creating order..."
-                        : "Continue to Payment"}
-                    </Button>
-                  </div>
-                  {paymentError && (
-                    <p style={{ color: "red", marginTop: "1rem" }}>
-                      {paymentError}
+                  <h2>
+                    {order?.paymentStatus === "REFUNDED"
+                      ? "Payment refunded"
+                      : order?.status === "CANCELLED"
+                        ? "Reservation cancelled"
+                        : "Reservation expired"}
+                  </h2>
+                  <p>
+                    {order?.paymentStatus === "REFUNDED"
+                      ? "Your payment was refunded and these tickets are no longer valid."
+                      : "You can check availability and start a new reservation."}
+                  </p>
+                  <Button onClick={startAgain}>Check tickets again</Button>
+                </section>
+              ) : order ? (
+                <section>
+                  <h2>Payment</h2>
+                  <p role="timer" aria-live="off">
+                    {remaining > 0
+                      ? "Tickets held for " +
+                        Math.floor(remaining / 60000) +
+                        ":" +
+                        String(Math.floor(remaining / 1000) % 60).padStart(
+                          2,
+                          "0",
+                        )
+                      : "Reservation window ended. Checking payment status..."}
+                  </p>
+                  {verifying && (
+                    <p role="status">
+                      Confirming your payment and tickets. You can safely
+                      refresh this page.
                     </p>
                   )}
-                </section>
-              )}
-
-              {currentState === "payment" && (
-                <section>
-                  <h1>Payment</h1>
-                  <Elements stripe={stripePromise}>
-                    <PaymentForm
-                      orderId={orderId}
-                      checkoutTotal={checkoutTotal}
-                      isProcessing={isProcessing}
-                      onSuccess={() => setCurrentState("confirmation")}
-                      onError={setPaymentError}
-                    />
-                  </Elements>
-                  <p className="ticket-buying__secure">
-                    <span aria-hidden="true">▣</span>Your payment is secured
-                    with 256-bit SSL encryption
-                  </p>
+                  {order.status === "PAYMENT_REVIEW" && (
+                    <p role="status">
+                      Your payment needs review. If tickets cannot be confirmed,
+                      the payment will be refunded.
+                    </p>
+                  )}
+                  {stripePromise ? (
+                    <Elements stripe={stripePromise}>
+                      <PaymentForm
+                        orderId={order.id}
+                        checkoutTotal={order.totalAmount / 100}
+                        isProcessing={busy || verifying}
+                        disabled={!canPay}
+                        billingName={user?.name ?? ""}
+                        onProcessing={() => setVerifying(true)}
+                        onSuccess={() => {
+                          setVerifying(true);
+                          void refreshOrder();
+                        }}
+                        onError={(message) => {
+                          setError(message);
+                          setVerifying(false);
+                          void refreshOrder();
+                        }}
+                      />
+                    </Elements>
+                  ) : (
+                    <p role="alert">
+                      Card payments are unavailable until the Stripe test
+                      publishable key is configured.
+                    </p>
+                  )}
                   <Button
                     variant="secondary-neutral"
-                    size="lg"
-                    onClick={goBack}
-                    style={{ marginTop: "1rem" }}
+                    onClick={cancel}
+                    disabled={busy || verifying}
                   >
-                    ← Back
+                    Cancel reservation
                   </Button>
-                  {paymentError && (
-                    <p style={{ color: "red", marginTop: "1rem" }}>
-                      {paymentError}
-                    </p>
+                  <Button
+                    variant="secondary-neutral"
+                    onClick={() => void refreshOrder()}
+                    disabled={busy}
+                  >
+                    Check payment status
+                  </Button>
+                </section>
+              ) : (
+                <section>
+                  <h2>Add-ons</h2>
+                  <div className="ticket-buying__add-ons">
+                    {catalog.map((item) => (
+                      <label key={item.id}>
+                        <input
+                          type="checkbox"
+                          checked={addOns.includes(item.id)}
+                          onChange={(event) =>
+                            setAddOns((selected) =>
+                              event.target.checked
+                                ? [...selected, item.id].sort()
+                                : selected.filter((id) => id !== item.id),
+                            )
+                          }
+                        />{" "}
+                        {item.name} - {usd(item.amount)}
+                        <p>{item.description}</p>
+                      </label>
+                    ))}
+                  </div>
+                  <label>
+                    Promo code{" "}
+                    <input
+                      value={promoInput}
+                      onChange={(event) =>
+                        setPromoInput(event.target.value.toUpperCase())
+                      }
+                    />
+                  </label>
+                  <Button
+                    variant="secondary-neutral"
+                    onClick={() => setPromoCode(promoInput.trim())}
+                  >
+                    Apply code
+                  </Button>
+                  <p>
+                    Your tickets will be held for 15 minutes once your
+                    reservation is created. Refreshing does not extend the hold.
+                  </p>
+                  {user ? (
+                    <>
+                      <p>Booking as {user.name}</p>
+                      <Button onClick={reserve} disabled={busy || !quote}>
+                        {busy
+                          ? "Reserving tickets..."
+                          : "Reserve tickets and continue"}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button onClick={login}>Log in to reserve tickets</Button>
                   )}
                 </section>
               )}
+              {error && (
+                <p role="alert" className="ticket-buying__error">
+                  {error}
+                </p>
+              )}
             </main>
-            <OrderSummary
-              total={ticketTotal}
-              showPromo={currentState === "payment"}
-              promoCode={promoCode}
-              promoApplied={promoApplied}
-              ticketName={
-                selectedTicket?.type
-                  ?.replaceAll("_", " ")
-                  .replace(/\b\w/g, (char) => char.toUpperCase()) || ""
-              }
-              quantity={quantity}
-              eventTitle={event?.title || ""}
-              eventDate={event?.date || ""}
-              eventImage={event?.images?.[0] || ""}
-              onPromoCodeChange={setPromoCode}
-              onApplyPromo={() => {
-                if (promoCode === "STAGEFRONT10") {
-                  setPromoApplied(true);
-                }
-              }}
-            />
+            <aside
+              className="ticket-buying__summary"
+              aria-label="Order summary"
+            >
+              <h2>Order Summary</h2>
+              {pricing ? (
+                <dl className="ticket-buying__totals">
+                  <div>
+                    <dt>Tickets</dt>
+                    <dd>{usd(pricing.subtotalAmount)}</dd>
+                  </div>
+                  <div>
+                    <dt>Add-ons</dt>
+                    <dd>{usd(pricing.addOnAmount)}</dd>
+                  </div>
+                  <div>
+                    <dt>Service fee</dt>
+                    <dd>{usd(pricing.feeAmount)}</dd>
+                  </div>
+                  {pricing.discountAmount > 0 && (
+                    <div>
+                      <dt>Discount</dt>
+                      <dd>-{usd(pricing.discountAmount)}</dd>
+                    </div>
+                  )}
+                  <div className="ticket-buying__total">
+                    <dt>Total</dt>
+                    <dd>{usd(pricing.totalAmount)}</dd>
+                  </div>
+                </dl>
+              ) : (
+                <p>Checking current pricing...</p>
+              )}
+            </aside>
           </div>
         )}
       </div>
-
-      <section className="ticket-buying__newsletter">
-        <div className="ticket-buying__newsletter-inner">
-          <div>
-            <h2>Never miss a show</h2>
-            <p>
-              Get early access to presales and exclusive event announcements.
-            </p>
-          </div>
-          <form onSubmit={(event) => event.preventDefault()}>
-            <input
-              aria-label="Email address"
-              type="email"
-              placeholder="Enter your email"
-            />
-            <Button type="submit" size="sm">
-              Subscribe
-            </Button>
-          </form>
-        </div>
-      </section>
     </div>
+  );
+}
+export default function TicketBuying() {
+  return (
+    <Suspense fallback={<p>Loading checkout...</p>}>
+      <Checkout />
+    </Suspense>
   );
 }

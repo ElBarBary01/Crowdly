@@ -262,7 +262,9 @@ export async function updateEvent(id: string, dto: UpdateEventDto) {
       const paidOrders = await tx.order.count({
         where: {
           tickets: { some: { eventId: id } },
-          paymentStatus: { in: ["SUCCEEDED", "REFUNDED"] },
+          paymentStatus: {
+            in: ["SUCCEEDED", "PARTIALLY_REFUNDED", "REFUNDED"],
+          },
         },
       });
       if (reserved || paidOrders)

@@ -1,3 +1,7 @@
+import { reconcileOrderPayment } from "../service/payment";
+import { getOrderById } from "../service/order";
+import { orderView } from "./order";
+import { quoteOrder } from "../service/pricing";
 import { Request, Response } from "express";
 import {
   createPaymentCheckout,
@@ -81,7 +85,9 @@ const webhookHandler = async (req: Request, res: Response) => {
   const rawBody = req.body;
 
   if (!Buffer.isBuffer(rawBody) || rawBody.length === 0) {
-    return res.status(400).json({ error: "A raw JSON request body is required" });
+    return res
+      .status(400)
+      .json({ error: "A raw JSON request body is required" });
   }
 
   let event: Stripe.Event;
@@ -207,3 +213,32 @@ export {
   refundHandler,
   cancelPaymentHandler,
 };
+
+export async function paymentStatusHandler(req: Request, res: Response) {
+  try {
+    await reconcileOrderPayment(req.body.orderId);
+    const order = await getOrderById(req.body.orderId);
+    return res.json({ success: true, data: orderView(order!) });
+  } catch (error) {
+    console.error(
+      "Payment confirmation deferred",
+      error instanceof Error ? error.message : "Unknown failure",
+    );
+    return res
+      .status(503)
+      .json({
+        success: false,
+        message:
+          "We could not verify payment yet. Your reservation remains protected while we retry.",
+      });
+  }
+}
+export async function quoteHandler(req: Request, res: Response) {
+  try {
+    return res.json({ success: true, data: await quoteOrder(req.body) });
+  } catch (error) {
+    return res.status(400).json({
+      message: error instanceof Error ? error.message : "Invalid cart",
+    });
+  }
+}

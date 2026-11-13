@@ -1,5 +1,11 @@
 export type PaymentStatus =
-  "NOT_STARTED" | "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED" | "REFUNDED";
+  | "NOT_STARTED"
+  | "PENDING"
+  | "SUCCEEDED"
+  | "PARTIALLY_REFUNDED"
+  | "FAILED"
+  | "CANCELLED"
+  | "REFUNDED";
 
 export type PaymentProvider = "STRIPE";
 
@@ -69,6 +75,9 @@ export type CreateOrderDto = {
   userId: string;
   tickets: CreateOrderTicketDto[];
   serviceFee?: number;
+  addOns?: string[];
+  promoCode?: string;
+  requestId?: string;
 };
 
 export type UpdateOrderDto = {

@@ -18,7 +18,7 @@ export async function inventoryTransaction<T>(
         attempt >= 7 ||
         !(error instanceof Error) ||
         !("code" in error) ||
-        error.code !== "P2034"
+        !["P2034", "P2002"].includes(String(error.code))
       )
         throw error;
       await delay(10 * (attempt + 1) + Math.random() * 25);
@@ -31,13 +31,14 @@ export async function inventoryTransaction<T>(
 export async function lockInventory(
   tx: Prisma.TransactionClient,
   eventIds: string[],
+  requireExisting = true,
 ) {
   for (const id of [...new Set(eventIds)].sort()) {
     const result = await tx.event.updateMany({
       where: { id },
       data: { inventoryRevision: randomUUID() },
     });
-    if (result.count !== 1)
+    if (requireExisting && result.count !== 1)
       throw new ReservationError("Event is no longer available");
   }
 }
@@ -139,7 +140,12 @@ export async function activateReservations(orderId: string) {
       );
     if (!Number.isFinite(order.totalPrice) || order.totalPrice <= 0)
       throw new ReservationError("Order total must be positive");
-    if (["SUCCEEDED", "REFUNDED", "CANCELLED"].includes(order.paymentStatus))
+    if (
+      ["SUCCEEDED", "PARTIALLY_REFUNDED", "REFUNDED", "CANCELLED"].includes(
+        order.paymentStatus,
+      ) ||
+      ["EXPIRED", "CANCELLED", "PAYMENT_REVIEW"].includes(order.status)
+    )
       throw new ReservationError("Order is no longer payable");
     if (
       order.reservations.length !== order.tickets.length ||
@@ -186,6 +192,7 @@ export async function releaseCancelledReservations(
   await lockInventory(
     tx,
     holds.map((hold) => hold.eventId),
+    false,
   );
   await tx.ticketReservation.updateMany({
     where: { orderId, status: "PAYMENT_ACTIVE" },

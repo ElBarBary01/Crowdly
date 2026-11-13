@@ -26,6 +26,16 @@ export function createApp() {
   app.use(express.json());
   app.use(cors({ origin: clientURL, credentials: true }));
   app.use(cookieParser());
+  app.use((req, res, next) => {
+    if (
+      !["GET", "HEAD", "OPTIONS"].includes(req.method) &&
+      req.get("origin") &&
+      req.get("origin") !== clientURL
+    ) {
+      return res.status(403).json({ message: "Request origin is not allowed" });
+    }
+    next();
+  });
 
   app.use("/payments", paymentRoutes);
   app.use("/auth", authRoutes);

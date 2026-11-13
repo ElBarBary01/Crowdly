@@ -6,15 +6,10 @@ import {
   processRefund,
   cancelPayment,
   PaymentError,
+  WebhookSignatureError,
 } from "../service/payment";
 import { CreatePaymentCheckoutDto, CreateRefundDto } from "../types/payment";
 import type Stripe from "stripe";
-
-// Extended request type that includes the raw body captured before
-// express.json() parses the stream.
-interface RawBodyRequest extends Request {
-  rawBody?: Buffer;
-}
 
 // POST /payments/create
 
@@ -73,32 +68,31 @@ const createPaymentHandler = async (req: Request, res: Response) => {
  * We verify the signature using the raw body, decode the event,
  * and process it.
  *
- * This endpoint uses the raw body stream (req.rawBody)
- * for Stripe's HMAC signature verification — never req.body,
- * because express.json() parses and mutates the stream.
+ * express.raw() supplies req.body as a Buffer on this route, before
+ * the application's express.json() middleware can consume the body.
  */
-const webhookHandler = async (req: RawBodyRequest, res: Response) => {
-  const signature = req.headers["stripe-signature"] as string;
+const webhookHandler = async (req: Request, res: Response) => {
+  const signature = req.get("stripe-signature");
 
   if (!signature) {
     return res.status(400).json({ error: "Missing Stripe-Signature header" });
   }
 
-  const rawBody = req.rawBody;
+  const rawBody = req.body;
 
-  if (!rawBody) {
-    return res.status(400).json({ error: "Missing request body" });
+  if (!Buffer.isBuffer(rawBody) || rawBody.length === 0) {
+    return res.status(400).json({ error: "A raw JSON request body is required" });
   }
 
   let event: Stripe.Event;
   try {
     event = await verifyWebhookSignature(rawBody, signature);
   } catch (error) {
-    if (error instanceof PaymentError) {
-      // Don't leak internal error details, Stripe will retry
+    if (error instanceof WebhookSignatureError) {
       return res.status(400).json({ error: "Invalid signature" });
     }
-    throw error;
+    console.error("Error verifying webhook:", error);
+    return res.status(500).json({ error: "Webhook verification unavailable" });
   }
 
   try {

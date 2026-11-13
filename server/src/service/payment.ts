@@ -3,7 +3,6 @@ import { stripe } from "../lib/stripe";
 import {
   CreatePaymentCheckoutDto,
   CreateRefundDto,
-  PaymentStatus,
 } from "../types/payment";
 import {
   OrderStatus as OrderStatusEnum,
@@ -19,6 +18,13 @@ export class PaymentError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "PaymentError";
+  }
+}
+
+export class WebhookSignatureError extends PaymentError {
+  constructor() {
+    super("Invalid webhook signature");
+    this.name = "WebhookSignatureError";
   }
 }
 
@@ -209,54 +215,13 @@ export async function createPaymentCheckout(
 /**
  * Process a Stripe webhook event and update order/payment state.
  *
- * Idempotent: processing the same event twice is safe because we only
- * transition from PENDING.  If the attempt is already SUCCEEDED/FAILED,
- * we silently skip.
- *
- * Events handled:
- *   - payment_intent.succeeded  → mark succeeded, confirm order, decrement inventory
- *   - payment_intent.payment_failed → mark failed
- *   - payment_intent.canceled   → mark cancelled
+ * State changes and inventory consumption share one transaction. Conditional
+ * updates make duplicate deliveries safe; transaction conflicts are returned
+ * to Stripe as errors so that delivery can be retried.
+ * A previously failed attempt can still succeed when its PaymentIntent is retried.
  */
 export async function processWebhookEvent(event: Stripe.Event): Promise<void> {
-  // Extract the PaymentIntent from the event
-  const pi =
-    "payment_intent" in (event.data.object as Stripe.PaymentIntent)
-      ? (event.data.object as Stripe.PaymentIntent)
-      : null;
-
-  if (!pi) {
-    // Not a payment_intent event, skip
-    return;
-  }
-
-  const paymentIntentId = pi.id;
-  const orderId = (pi.metadata?.orderId as string) ?? null;
-
-  if (!orderId) {
-    // PaymentIntent not associated with an order, skip
-    return;
-  }
-
-  // Find the pending PaymentAttempt for this order + PaymentIntent
-  const paymentAttempt = await prisma.paymentAttempt.findFirst({
-    where: {
-      orderId,
-      paymentIntentId,
-      status: PaymentStatusEnum.PENDING,
-    },
-    include: { order: true },
-  });
-
-  if (!paymentAttempt) {
-    // No matching pending attempt, either already processed, or
-    // this is a duplicate webhook,  Safe to skip (idempotent)
-    return;
-  }
-
-  // Determine the new state based on event type
-  let newPaymentStatus: PaymentStatusEnum | null = null;
-
+  let newPaymentStatus: PaymentStatusEnum;
   switch (event.type) {
     case "payment_intent.succeeded":
       newPaymentStatus = PaymentStatusEnum.SUCCEEDED;
@@ -271,41 +236,98 @@ export async function processWebhookEvent(event: Stripe.Event): Promise<void> {
       break;
 
     default:
-      // Unknown event type, skip
       return;
   }
 
-  if (!newPaymentStatus) return;
+  const pi = event.data.object;
+  if (pi.object !== "payment_intent") return;
 
-  // Use a transaction to atomically update PaymentAttempt and Order.
-  // On success, also decrement ticket inventory.
+  const orderId = pi.metadata?.orderId;
+  if (!orderId) return;
+
+  // Read and claim the attempt inside the same transaction as fulfillment.
   await prisma.$transaction(async (tx) => {
-    // Update PaymentAttempt
-    await tx.paymentAttempt.update({
-      where: { id: paymentAttempt.id },
-      data: { status: newPaymentStatus },
+    const paymentAttempt = await tx.paymentAttempt.findFirst({
+      where: {
+        orderId,
+        paymentIntentId: pi.id,
+        provider: PaymentProviderEnum.STRIPE,
+      },
+      include: { order: true },
     });
 
+    if (!paymentAttempt) {
+      // A delivery can arrive before the local attempt has been persisted.
+      // Return an error so Stripe retries instead of acknowledging lost work.
+      throw new PaymentError("Payment attempt is not available for this webhook");
+    }
+
+    if (
+      paymentAttempt.status === PaymentStatusEnum.SUCCEEDED ||
+      paymentAttempt.status === PaymentStatusEnum.REFUNDED ||
+      paymentAttempt.status === newPaymentStatus ||
+      (paymentAttempt.status === PaymentStatusEnum.CANCELLED &&
+        newPaymentStatus === PaymentStatusEnum.FAILED)
+    ) {
+      return;
+    }
+
     if (newPaymentStatus === PaymentStatusEnum.SUCCEEDED) {
-      // Confirm the order
-      await tx.order.update({
-        where: { id: orderId },
+      const expectedAmount = toStripeAmount(paymentAttempt.amount);
+      if (
+        pi.status !== "succeeded" ||
+        pi.amount !== expectedAmount ||
+        pi.amount_received !== expectedAmount ||
+        pi.currency !== paymentAttempt.currency.toLowerCase() ||
+        expectedAmount !== toStripeAmount(paymentAttempt.order.totalPrice)
+      ) {
+        throw new PaymentError(
+          "Payment does not match the order amount or currency",
+        );
+      }
+    }
+
+    const attemptUpdate = await tx.paymentAttempt.updateMany({
+      where: { id: paymentAttempt.id, status: paymentAttempt.status },
+      data: { status: newPaymentStatus },
+    });
+    if (attemptUpdate.count !== 1) return;
+
+    if (newPaymentStatus === PaymentStatusEnum.SUCCEEDED) {
+      const orderUpdate = await tx.order.updateMany({
+        where: {
+          id: orderId,
+          paymentStatus: {
+            notIn: [PaymentStatusEnum.SUCCEEDED, PaymentStatusEnum.REFUNDED],
+          },
+        },
         data: {
           paymentStatus: PaymentStatusEnum.SUCCEEDED,
           status: OrderStatusEnum.CONFIRMATION,
         },
       });
 
-      // Decrement ticket inventory for each ticket in the order.
-      // Each OrderTicket now carries its own eventId so tickets from
-      // different events are correctly decremented against the right event
-      for (const ticket of paymentAttempt.order.tickets) {
-        const eventId = ticket.eventId;
-        if (!eventId) continue;
+      // Record additional successful payments, but fulfill the order only once.
+      if (orderUpdate.count !== 1) return;
 
-        // find the specific ticket type and decrement its quantity.
-        await prisma.event.updateMany({
-          where: { id: eventId },
+      for (const ticket of paymentAttempt.order.tickets) {
+        if (
+          !ticket.eventId ||
+          !Number.isInteger(ticket.quantity) ||
+          ticket.quantity <= 0
+        ) {
+          throw new PaymentError(
+            "Order contains an invalid ticket quantity or event",
+          );
+        }
+
+        const inventoryUpdate = await tx.event.updateMany({
+          where: {
+            id: ticket.eventId,
+            tickets: {
+              some: { type: ticket.type, quantity: { gte: ticket.quantity } },
+            },
+          },
           data: {
             tickets: {
               updateMany: {
@@ -319,14 +341,19 @@ export async function processWebhookEvent(event: Stripe.Event): Promise<void> {
             },
           },
         });
+        if (inventoryUpdate.count !== 1) {
+          throw new PaymentError("Ticket inventory is unavailable for this order");
+        }
       }
     } else {
-      // FAILED or CANCELLED, keep order status in PAYMENT so the
-      // buyer can retry.  Update only paymentStatus.
-      // Inventory was not decremented (it is only consumed on SUCCEEDED),
-      // so no release is needed.
-      await tx.order.update({
-        where: { id: orderId },
+      // An older failed/cancelled attempt must not undo a paid order.
+      await tx.order.updateMany({
+        where: {
+          id: orderId,
+          paymentStatus: {
+            notIn: [PaymentStatusEnum.SUCCEEDED, PaymentStatusEnum.REFUNDED],
+          },
+        },
         data: {
           paymentStatus: newPaymentStatus,
         },
@@ -358,14 +385,13 @@ export async function verifyWebhookSignature(
   }
 
   try {
-    // Stripe v22 uses async constructEvent
     return await stripe.webhooks.constructEventAsync(
       rawBody,
       signature,
       webhookSecret,
     );
-  } catch (error) {
-    throw new PaymentError("Invalid webhook signature");
+  } catch {
+    throw new WebhookSignatureError();
   }
 }
 

@@ -110,8 +110,16 @@ export async function startTestMongo() {
        }`,
     ], { windowsHide: true, timeout: 25_000 });
 
+    const url = `mongodb://127.0.0.1:${port}/crowdly_payment_tests?replicaSet=crowdly-tests`;
+    const serverDirectory = resolve(import.meta.dirname, "../..");
+    await executeFile(process.execPath, [
+      join(serverDirectory, "node_modules/prisma/build/index.js"), "db", "push", "--skip-generate",
+    ], {
+      cwd: serverDirectory, env: { ...process.env, DATABASE_URL: url },
+      windowsHide: true, timeout: 25_000,
+    });
     return {
-      url: `mongodb://127.0.0.1:${port}/crowdly_payment_tests?replicaSet=crowdly-tests`,
+      url,
       stop,
     };
   } catch (error) {

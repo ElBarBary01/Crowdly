@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import type { Server } from "node:http";
 import { after, before, test } from "node:test";
+import type { TestContext } from "node:test";
+import type Stripe from "stripe";
 import type { PaymentStatus } from "../generated/prisma/enums";
 import { startTestMongo } from "./helpers/mongo";
 
@@ -299,4 +301,358 @@ test("ordinary payment endpoints still receive parsed JSON", async () => {
   });
   assert.equal(response.status, 400);
   assert.equal((await response.json()).message, "orderId is required");
+});
+
+async function heldOrder(stock = [5], quantity = 2) {
+  const data = await fixture(stock);
+  const { createOrder } = await import("../src/service/order");
+  const dto = {
+    userId: data.order.userId,
+    tickets: data.events.map((event) => ({
+      eventId: event.id,
+      type: "VIP",
+      quantity,
+    })),
+  };
+  const order = await createOrder(dto);
+  return { ...data, order, dto };
+}
+
+function mockStripeCreation(context: TestContext) {
+  const intents = new Map<string, Stripe.Response<Stripe.PaymentIntent>>();
+  context.mock.method(
+    stripe.paymentIntents,
+    "create",
+    async (
+      params: Stripe.PaymentIntentCreateParams,
+      options?: Stripe.RequestOptions,
+    ) => {
+      assert(options?.idempotencyKey);
+      let intent = intents.get(options.idempotencyKey);
+      if (!intent) {
+        const id = `pi_${randomUUID()}`;
+        intent = {
+          id,
+          client_secret: `${id}_secret`,
+          status: "requires_payment_method",
+          ...params,
+        } as Stripe.Response<Stripe.PaymentIntent>;
+        intents.set(options.idempotencyKey, intent);
+      }
+      return intent;
+    },
+  );
+  return intents;
+}
+
+async function makeExpired(orderId: string) {
+  const expiresAt = new Date(Date.now() - 1000);
+  await prisma.order.update({ where: { id: orderId }, data: { expiresAt } });
+  await prisma.ticketReservation.updateMany({
+    where: { orderId },
+    data: { expiresAt },
+  });
+}
+
+test("only one of eight competing requests can reserve the last ticket", async () => {
+  const data = await fixture([1]);
+  const { createOrder } = await import("../src/service/order");
+  const beforeCount = await prisma.order.count();
+  const requests = Array.from({ length: 8 }, () =>
+    createOrder({
+      userId: data.order.userId,
+      tickets: [{ eventId: data.events[0].id, type: "VIP", quantity: 1 }],
+    }),
+  );
+  const results = await Promise.allSettled(requests);
+  assert.equal(
+    results.filter((result) => result.status === "fulfilled").length,
+    1,
+  );
+  assert.equal(await prisma.order.count(), beforeCount + 1);
+  assert.equal(
+    await prisma.ticketReservation.count({
+      where: { eventId: data.events[0].id },
+    }),
+    1,
+  );
+});
+
+test("duplicate lines are aggregated and oversized/invalid orders do not reserve stock", async () => {
+  const data = await fixture([3]);
+  const { createOrder } = await import("../src/service/order");
+  const line = { eventId: data.events[0].id, type: "VIP", quantity: 2 };
+  await assert.rejects(
+    createOrder({ userId: data.order.userId, tickets: [line, line] }),
+    /Not enough/,
+  );
+  for (const quantity of [-1, 0, 0.5, Number.NaN]) {
+    await assert.rejects(
+      createOrder({
+        userId: data.order.userId,
+        tickets: [{ ...line, quantity }],
+      }),
+      /positive integer/,
+    );
+  }
+  await assert.rejects(
+    createOrder({
+      userId: data.order.userId,
+      tickets: [line],
+      serviceFee: -19,
+    }),
+    /cannot be supplied/,
+  );
+  assert.equal(
+    await prisma.ticketReservation.count({
+      where: { eventId: data.events[0].id },
+    }),
+    0,
+  );
+  const order = await createOrder({
+    userId: data.order.userId,
+    tickets: [
+      { ...line, quantity: 1 },
+      { ...line, quantity: 1 },
+    ],
+  });
+  assert.equal(order.tickets.length, 1);
+  assert.equal(order.tickets[0].quantity, 2);
+  assert.equal(
+    order.expiresAt!.getTime() - order.createdAt.getTime(),
+    15 * 60 * 1000,
+  );
+});
+
+test("a multi-event reservation is all-or-nothing", async () => {
+  const data = await fixture([5, 0]);
+  const { createOrder } = await import("../src/service/order");
+  const beforeCount = await prisma.order.count();
+  await assert.rejects(
+    createOrder({
+      userId: data.order.userId,
+      tickets: data.events.map((event) => ({
+        eventId: event.id,
+        type: "VIP",
+        quantity: 1,
+      })),
+    }),
+    /Not enough/,
+  );
+  assert.equal(await prisma.order.count(), beforeCount);
+  assert.equal(
+    await prisma.ticketReservation.count({
+      where: { eventId: { in: data.events.map((event) => event.id) } },
+    }),
+    0,
+  );
+});
+
+test("all event views subtract holds, and expired unpaid holds disappear without cleanup", async () => {
+  const data = await heldOrder([5], 2);
+  const events = await import("../src/service/event");
+  const home = await import("../src/service/home");
+  const views = [
+    (await events.getEvents({ venueId: data.events[0].venueId })).events[0],
+    (await events.getUpcomingEvents(1000)).find(
+      (event) => event.id === data.events[0].id,
+    )!,
+    (await events.getTrendingEvents(1000)).find(
+      (event) => event.id === data.events[0].id,
+    )!,
+    (await events.getEventById(data.events[0].id))!,
+  ];
+  for (const view of views) {
+    assert.equal(view.tickets[0].quantity, 3);
+    assert.equal(view.tickets[0].reservedQuantity, 2);
+    assert.equal(view.venue.ticketsLeft, 3);
+  }
+  for (const cards of [
+    await home.getTrendingEvents(1000),
+    await home.getNearByEvents(1000),
+  ]) {
+    const card = cards.find((item) => item.id === data.events[0].id)!;
+    assert.equal(card.availableQuantity, 3);
+    assert.equal(card.reservedQuantity, 2);
+  }
+  await makeExpired(data.order.id);
+  assert.equal(
+    (await events.getEventById(data.events[0].id))!.availableQuantity,
+    5,
+  );
+  const { activateReservations } = await import("../src/service/reservation");
+  await assert.rejects(activateReservations(data.order.id), /expired/);
+  const { createOrder } = await import("../src/service/order");
+  await createOrder({ ...data.dto, tickets: [{ ...data.dto.tickets[0], quantity: 5 }] });
+  assert.equal((await events.getEventById(data.events[0].id))!.availableQuantity, 0);
+  assert.equal(
+    (
+      await prisma.ticketReservation.findFirstOrThrow({
+        where: { orderId: data.order.id },
+      })
+    ).status,
+    "HELD",
+  );
+});
+
+test("concurrent checkout retries reuse one Stripe intent and preserve the original deadline", async (context) => {
+  const data = await heldOrder();
+  const intents = mockStripeCreation(context);
+  const { createPaymentCheckout } = await import("../src/service/payment");
+  const results = await Promise.all(
+    Array.from({ length: 5 }, () =>
+      createPaymentCheckout({ orderId: data.order.id }),
+    ),
+  );
+  assert.equal(intents.size, 1);
+  assert.equal(
+    new Set(results.map((result) => result.paymentAttemptId)).size,
+    1,
+  );
+  assert(results.every((result) => result.clientSecret.length > 0));
+  assert.equal(
+    await prisma.paymentAttempt.count({ where: { orderId: data.order.id } }),
+    1,
+  );
+  assert.equal(
+    (
+      await prisma.order.findUniqueOrThrow({ where: { id: data.order.id } })
+    ).expiresAt!.getTime(),
+    data.order.expiresAt!.getTime(),
+  );
+});
+
+test("payment-active reservations block others after expiry and become sold exactly once", async (context) => {
+  const data = await heldOrder([2]);
+  mockStripeCreation(context);
+  const payment = await import("../src/service/payment");
+  await payment.createPaymentCheckout({ orderId: data.order.id });
+  const attempt = await prisma.paymentAttempt.findFirstOrThrow({
+    where: { orderId: data.order.id },
+  });
+  await makeExpired(data.order.id);
+  const { getEventById } = await import("../src/service/event");
+  const { createOrder } = await import("../src/service/order");
+  assert.equal((await getEventById(data.events[0].id))!.reservedQuantity, 2);
+  const home = await import("../src/service/home");
+  assert.equal((await home.getTrendingEvents(1000)).find((card) => card.id === data.events[0].id)!.availabilityLabel, "Reserved");
+  await assert.rejects(createOrder(data.dto), /Not enough/);
+  await payment.reconcileExpiredPayments();
+  assert.equal(
+    (
+      await prisma.paymentAttempt.findUniqueOrThrow({
+        where: { id: attempt.id },
+      })
+    ).status,
+    "PENDING",
+  );
+  const event = paymentEvent({ ...data, attempt });
+  assert.equal((await deliver(event)).status, 200);
+  assert.equal((await deliver(event)).status, 200);
+  await expectState({ ...data, attempt }, "SUCCEEDED", [0]);
+  assert.equal((await getEventById(data.events[0].id))!.reservedQuantity, 0);
+  assert.equal((await home.getTrendingEvents(1000)).find((card) => card.id === data.events[0].id)!.availabilityLabel, "Sold Out");
+  assert.equal(
+    (
+      await prisma.ticketReservation.findFirstOrThrow({
+        where: { orderId: data.order.id },
+      })
+    ).status,
+    "CONSUMED",
+  );
+});
+
+test("uncertain Stripe creation/cancellation protects stock, confirmed cancellation releases it", async (context) => {
+  const data = await heldOrder([2]);
+  const payment = await import("../src/service/payment");
+  const failedCreation = context.mock.method(
+    stripe.paymentIntents,
+    "create",
+    async () => {
+      throw new Error("Network timeout");
+    },
+  );
+  await assert.rejects(
+    payment.createPaymentCheckout({ orderId: data.order.id }),
+    /Unable to start/,
+  );
+  assert.equal(
+    (
+      await prisma.ticketReservation.findFirstOrThrow({
+        where: { orderId: data.order.id },
+      })
+    ).status,
+    "PAYMENT_ACTIVE",
+  );
+  failedCreation.mock.restore();
+  mockStripeCreation(context);
+  await payment.createPaymentCheckout({ orderId: data.order.id });
+  const cancellation = context.mock.method(
+    stripe.paymentIntents,
+    "cancel",
+    async () => {
+      throw new Error("Network timeout");
+    },
+  );
+  await assert.rejects(
+    payment.cancelPayment(data.order.id),
+    /remains protected/,
+  );
+  assert.equal(
+    (
+      await prisma.ticketReservation.findFirstOrThrow({
+        where: { orderId: data.order.id },
+      })
+    ).status,
+    "PAYMENT_ACTIVE",
+  );
+  cancellation.mock.restore();
+  context.mock.method(
+    stripe.paymentIntents,
+    "cancel",
+    async () =>
+      ({ status: "canceled" }) as Stripe.Response<Stripe.PaymentIntent>,
+  );
+  await payment.cancelPayment(data.order.id);
+  const { getEventById } = await import("../src/service/event");
+  assert.equal((await getEventById(data.events[0].id))!.availableQuantity, 2);
+  assert.equal(
+    (
+      await prisma.ticketReservation.findFirstOrThrow({
+        where: { orderId: data.order.id },
+      })
+    ).status,
+    "RELEASED",
+  );
+});
+
+test("stock editing, event deletion, and arbitrary order changes cannot invalidate a hold", async () => {
+  const data = await heldOrder();
+  const event = await import("../src/service/event");
+  const order = await import("../src/service/order");
+  await assert.rejects(
+    event.updateEvent(data.events[0].id, {
+      tickets: [{ type: "VIP", price: 10, quantity: 0 }],
+    }),
+    /reserved or sold/,
+  );
+  await assert.rejects(
+    event.deleteEvent(data.events[0].id),
+    /referenced by orders/,
+  );
+  await assert.rejects(
+    order.updateOrder(data.order.id, { status: "CONFIRMATION" }),
+    /managed by/,
+  );
+  const { activateReservations } = await import("../src/service/reservation");
+  await activateReservations(data.order.id);
+  await assert.rejects(order.deleteOrder(data.order.id), /reconcile payment/);
+});
+
+test("deleting an unpaid order releases its hold", async () => {
+  const data = await heldOrder([2]);
+  const { deleteOrder } = await import("../src/service/order");
+  await deleteOrder(data.order.id);
+  const { getEventById } = await import("../src/service/event");
+  assert.equal((await getEventById(data.events[0].id))!.availableQuantity, 2);
 });

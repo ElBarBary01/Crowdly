@@ -1,3 +1,9 @@
+import {
+  withAvailability,
+  inventoryTransaction,
+  lockInventory,
+  blockingReservations,
+} from "./reservation";
 import prisma from "../lib/prisma";
 import {
   CreateEventDto,
@@ -12,22 +18,6 @@ import {
 } from "../../generated/prisma/enums";
 
 export class InvalidEventConfigurationError extends Error {}
-
-function addTicketsLeft<
-  T extends {
-    tickets: readonly { quantity: number }[];
-    venue: object;
-  },
->(event: T) {
-  const ticketsLeft = getTicketsLeft(event.tickets);
-  return {
-    ...event,
-    venue: {
-      ...event.venue,
-      ticketsLeft,
-    },
-  };
-}
 
 async function validateTicketConfigurationForVenue(
   venueId: string,
@@ -97,7 +87,7 @@ export async function createEvent(dto: CreateEventDto) {
     },
   });
 
-  return addTicketsLeft(event);
+  return (await withAvailability([event]))[0];
 }
 export async function getEvents(query: GetEventsQuery = {}) {
   const { sort, order, genre, venueId, page = 1, limit = 6 } = query;
@@ -141,7 +131,7 @@ export async function getEvents(query: GetEventsQuery = {}) {
   ]);
 
   return {
-    events,
+    events: await withAvailability(events),
     total,
     page,
     limit,
@@ -150,7 +140,7 @@ export async function getEvents(query: GetEventsQuery = {}) {
 }
 
 export async function getUpcomingEvents(limit = 5) {
-  return prisma.event.findMany({
+  const events = await prisma.event.findMany({
     where: {
       date: {
         gte: new Date(),
@@ -165,6 +155,7 @@ export async function getUpcomingEvents(limit = 5) {
       artists: { include: { artist: true } },
     },
   });
+  return withAvailability(events);
 }
 export async function getTrendingEvents(limit = 4) {
   const events = await prisma.event.findMany({
@@ -179,8 +170,7 @@ export async function getTrendingEvents(limit = 4) {
     },
   });
 
-  return events
-    .map(addTicketsLeft)
+  return (await withAvailability(events))
     .sort((a, b) => {
       if (a.venue.ticketsLeft !== b.venue.ticketsLeft) {
         return a.venue.ticketsLeft - b.venue.ticketsLeft;
@@ -200,7 +190,7 @@ export async function getEventById(id: string) {
     },
   });
 
-  return event ? addTicketsLeft(event) : null;
+  return event ? ((await withAvailability([event]))[0] ?? null) : null;
 }
 
 // Update an existing event by ID (partial update with nested relations).
@@ -260,30 +250,53 @@ export async function updateEvent(id: string, dto: UpdateEventDto) {
     }));
   }
 
-  const event = await prisma.event.update({
-    where: { id },
-    data,
-    include: {
-      venue: true,
-      artists: { include: { artist: true } },
-    },
+  const event = await inventoryTransaction(async (tx) => {
+    await lockInventory(tx, [id]);
+    if (dto.tickets !== undefined || venueId !== undefined) {
+      const reserved = await tx.ticketReservation.count({
+        where: {
+          eventId: id,
+          OR: [blockingReservations(new Date()), { status: "CONSUMED" }],
+        },
+      });
+      const paidOrders = await tx.order.count({
+        where: {
+          tickets: { some: { eventId: id } },
+          paymentStatus: { in: ["SUCCEEDED", "REFUNDED"] },
+        },
+      });
+      if (reserved || paidOrders)
+        throw new InvalidEventConfigurationError(
+          "Ticket configuration cannot change while tickets are reserved or sold",
+        );
+    }
+    return tx.event.update({
+      where: { id },
+      data,
+      include: {
+        venue: true,
+        artists: { include: { artist: true } },
+      },
+    });
   });
-
-  return addTicketsLeft(event);
+  return (await withAvailability([event]))[0];
 }
 
 // Delete an event by ID (cascades EventArtist bridge records).
 
 export async function deleteEvent(id: string) {
-  const [, event] = await prisma.$transaction([
-    prisma.eventArtist.deleteMany({
-      where: { eventId: id },
-    }),
-    prisma.event.delete({
-      where: { id },
-    }),
-  ]);
-  return event;
+  return inventoryTransaction(async (tx) => {
+    await lockInventory(tx, [id]);
+    const orders = await tx.order.count({
+      where: { tickets: { some: { eventId: id } } },
+    });
+    if (orders)
+      throw new InvalidEventConfigurationError(
+        "Events referenced by orders cannot be deleted",
+      );
+    await tx.eventArtist.deleteMany({ where: { eventId: id } });
+    return tx.event.delete({ where: { id } });
+  });
 }
 export async function getRelatedEvents(id: string) {
   const currentEvent = await prisma.event.findUnique({
@@ -312,5 +325,5 @@ export async function getRelatedEvents(id: string) {
     },
   });
 
-  return events.map(addTicketsLeft);
+  return withAvailability(events);
 }

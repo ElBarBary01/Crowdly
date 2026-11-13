@@ -59,6 +59,13 @@ enum PaymentProvider {
   STRIPE
 }
 
+enum ReservationStatus {
+  HELD
+  PAYMENT_ACTIVE
+  CONSUMED
+  RELEASED
+}
+
 enum PaymentMethod {
   CARD
   APPLE_PAY
@@ -180,6 +187,8 @@ model Event {
   tickets     Ticket[]
   images      String[]
   description String?
+  // All reservation writers modify this document to serialize stock decisions.
+  inventoryRevision String?
 
   @@unique([venueId, date, time])
   @@index([genres])
@@ -195,6 +204,7 @@ model Order {
   status        OrderStatus   @default(TICKET_SELECTION)
   paymentStatus PaymentStatus @default(NOT_STARTED)
   serviceFee    Float         @default(0)
+  expiresAt     DateTime?
 
   // Embedded event data snapshot at time of order
   events OrderEvent[]
@@ -206,8 +216,25 @@ model Order {
   totalPrice Float
 
   payments PaymentAttempt[]
+  reservations TicketReservation[]
 
   @@map("orders")
+}
+
+model TicketReservation {
+  id        String @id @default(uuid()) @map("_id")
+  orderId   String
+  order     Order @relation(fields: [orderId], references: [id])
+  eventId   String
+  ticketType TicketType
+  quantity  Int
+  expiresAt DateTime
+  status    ReservationStatus @default(HELD)
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, eventId, ticketType])
+  @@index([eventId, status, expiresAt])
+  @@index([status, expiresAt])
 }
 
 model PaymentAttempt {
@@ -216,7 +243,7 @@ model PaymentAttempt {
   order   Order  @relation(fields: [orderId], references: [id])
 
   provider          PaymentProvider
-  providerReference String
+  providerReference String @unique
   providerSessionId String?
   paymentIntentId   String?
 
@@ -229,5 +256,4 @@ model PaymentAttempt {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([orderId])
-  @@index([providerReference])
 }

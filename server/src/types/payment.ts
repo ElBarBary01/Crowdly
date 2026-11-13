@@ -79,16 +79,5 @@ export type CreateRefundDto = {
   amount?: number; // optional: partial refund; omit for full refund
 };
 
-/**
- * Internal reservation state used during a pending payment flow.
- * Tickets are "reserved" so they are not sold to someone else while
- * the buyer is completing payment.  On success the reservation is
- * consumed (quantity decremented permanently).  On failure/cancel/
- * expiry the reserved quantity is released.
- */
-export type Reservation = {
-  orderId: string;
-  eventId: string;
-  ticketType: string;
-  reservedQuantity: number;
-};
+// Use the persisted reservation model, including its deadline and state.
+export type { TicketReservation as Reservation } from "../../generated/prisma/client";

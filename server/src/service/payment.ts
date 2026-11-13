@@ -1,9 +1,14 @@
+import {
+  activateReservations,
+  inventoryTransaction,
+  lockInventory,
+  reservedQuantities,
+  releaseCancelledReservations,
+  ReservationError,
+} from "./reservation";
 import prisma from "../lib/prisma";
 import { stripe } from "../lib/stripe";
-import {
-  CreatePaymentCheckoutDto,
-  CreateRefundDto,
-} from "../types/payment";
+import { CreatePaymentCheckoutDto, CreateRefundDto } from "../types/payment";
 import {
   OrderStatus as OrderStatusEnum,
   PaymentStatus as PaymentStatusEnum,
@@ -28,30 +33,6 @@ export class WebhookSignatureError extends PaymentError {
   }
 }
 
-class OrderNotFoundError extends PaymentError {
-  constructor() {
-    super("Order not found");
-  }
-}
-
-class OrderAlreadyPaidError extends PaymentError {
-  constructor() {
-    super("Order is already paid");
-  }
-}
-
-class OrderPaymentInProgressError extends PaymentError {
-  constructor() {
-    super("Payment for this order is already in progress");
-  }
-}
-
-class CannotPayError extends PaymentError {
-  constructor(reason: string) {
-    super(`Cannot pay this order: ${reason}`);
-  }
-}
-
 class PaymentAttemptNotFoundError extends Error {
   constructor() {
     super("Payment attempt not found");
@@ -59,9 +40,6 @@ class PaymentAttemptNotFoundError extends Error {
 }
 
 // Constants
-//Payment window: 15 minutes is the standard checkout expiry
-// After this window a pending payment is considered expired and released
-const PAYMENT_EXPIRY_MS = 15 * 60 * 1000;
 const CURRENCY = "usd";
 
 // Helpers
@@ -74,138 +52,56 @@ function toStripeAmount(dollars: number): number {
 
 // Create payment checkout
 
-/**
- * Start the payment flow for an order.
- *
- * 1. Validates the order exists and can be paid.
- * 2. Creates a PaymentAttempt with status PENDING.
- * 3. Creates a Stripe PaymentIntent with the order amount (from DB).
- * 4. Returns the PaymentIntent client_secret for the frontend to confirm.
- * 5. Advances order status to PAYMENT and paymentStatus to PENDING.
- */
-export async function createPaymentCheckout(
-  dto: CreatePaymentCheckoutDto,
-): Promise<{
-  paymentIntentId: string;
-  clientSecret: string;
-  paymentAttemptId: string;
-  amount: number;
-}> {
+/** Activate a valid reservation and create or resume its Stripe PaymentIntent. */
+export async function createPaymentCheckout(dto: CreatePaymentCheckoutDto) {
   const { orderId, method } = dto;
-
-  if (!orderId) {
-    throw new PaymentError("orderId is required");
-  }
-
-  // Fetch order, embedded tickets and events are returned by default
-  // Only payments (the relation) needs to be included
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: { payments: true },
-  });
-
-  if (!order) {
-    throw new OrderNotFoundError();
-  }
-
-  // Only orders in TICKET_SELECTION can enter payment
-  if (order.status !== OrderStatusEnum.TICKET_SELECTION) {
-    throw new CannotPayError("Order is not in a payable state");
-  }
-
-  // Check if the order already has a succeeded payment
-  if (order.paymentStatus === PaymentStatusEnum.SUCCEEDED) {
-    throw new OrderAlreadyPaidError();
-  }
-
-  // Check for existing PENDING attempt, idempotency: return existing
-  const existingAttempt = await prisma.paymentAttempt.findFirst({
-    where: {
-      orderId,
-      status: PaymentStatusEnum.PENDING,
-    },
-  });
-
-  if (existingAttempt) {
-    // An active pending payment exists, return it so the frontend
-    // can resume using the same PaymentIntent
-    return {
-      paymentIntentId: existingAttempt.paymentIntentId || "",
-      clientSecret: "",
-      paymentAttemptId: existingAttempt.id,
-      amount: order.totalPrice,
-    };
-  }
-
-  // Validate order has tickets and a positive total
-  if (!order.tickets || order.tickets.length === 0) {
-    throw new PaymentError("Order has no tickets");
-  }
-  if (order.totalPrice <= 0) {
-    throw new PaymentError("Order total must be positive");
-  }
-
-  // Convert to Stripe amount (cents)
-  const stripeAmount = toStripeAmount(order.totalPrice);
-
-  // Map frontend method to Stripe payment method types
-  const paymentMethodTypes: string[] = ["card"];
-  if (method) {
-    if (method === "APPLE_PAY" || method === "GOOGLE_PAY") {
-      paymentMethodTypes.push("link"); // Stripe handles wallets via Link
-    }
-    if (method === "PAYPAL") {
-      paymentMethodTypes.push("paypal");
-    }
-  }
-
-  let paymentIntent;
+  if (!orderId) throw new PaymentError("orderId is required");
+  if (method && method !== "CARD")
+    throw new PaymentError("Only card payments are currently supported");
+  let order;
   try {
-    paymentIntent = await stripe.paymentIntents.create({
-      amount: stripeAmount,
-      currency: CURRENCY,
-      metadata: {
-        orderId,
-      },
-      setup_future_usage: "off_session",
-      payment_method_types: paymentMethodTypes,
-    });
-  } catch {
-    throw new PaymentError("Failed to create payment intent");
+    order = await activateReservations(orderId);
+  } catch (error) {
+    if (error instanceof ReservationError)
+      throw new PaymentError(error.message);
+    throw error;
   }
-
-  const providerMethod = method
-    ? (method.toUpperCase() as PaymentMethodEnum)
-    : undefined;
-
-  // Create PaymentAttempt record after Stripe succeeds
-  const paymentAttempt = await prisma.paymentAttempt.create({
-    data: {
-      order: { connect: { id: orderId } },
+  // Every retry uses the same parameters/key. An ambiguous network failure
+  // leaves the hold protected until Stripe can be reconciled.
+  let intent;
+  try {
+    intent = await stripe.paymentIntents.create(
+      {
+        amount: toStripeAmount(order.totalPrice),
+        currency: CURRENCY,
+        metadata: { orderId },
+        payment_method_types: ["card"],
+      },
+      { idempotencyKey: "crowdly-order:" + orderId },
+    );
+  } catch {
+    throw new PaymentError(
+      "Unable to start payment; retry this order to resume",
+    );
+  }
+  const attempt = await prisma.paymentAttempt.upsert({
+    where: { providerReference: intent.id },
+    update: {},
+    create: {
+      orderId,
       provider: PaymentProviderEnum.STRIPE,
-      providerReference: paymentIntent.id,
-      providerSessionId: null,
-      paymentIntentId: paymentIntent.id,
-      method: providerMethod,
+      providerReference: intent.id,
+      paymentIntentId: intent.id,
+      method: PaymentMethodEnum.CARD,
       amount: order.totalPrice,
       currency: CURRENCY,
       status: PaymentStatusEnum.PENDING,
     },
   });
-
-  // Advance order state
-  await prisma.order.update({
-    where: { id: orderId },
-    data: {
-      status: OrderStatusEnum.PAYMENT,
-      paymentStatus: PaymentStatusEnum.PENDING,
-    },
-  });
-
   return {
-    paymentIntentId: paymentIntent.id,
-    clientSecret: paymentIntent.client_secret!,
-    paymentAttemptId: paymentAttempt.id,
+    paymentIntentId: intent.id,
+    clientSecret: intent.client_secret!,
+    paymentAttemptId: attempt.id,
     amount: order.totalPrice,
   };
 }
@@ -259,7 +155,9 @@ export async function processWebhookEvent(event: Stripe.Event): Promise<void> {
     if (!paymentAttempt) {
       // A delivery can arrive before the local attempt has been persisted.
       // Return an error so Stripe retries instead of acknowledging lost work.
-      throw new PaymentError("Payment attempt is not available for this webhook");
+      throw new PaymentError(
+        "Payment attempt is not available for this webhook",
+      );
     }
 
     if (
@@ -310,6 +208,40 @@ export async function processWebhookEvent(event: Stripe.Event): Promise<void> {
       // Record additional successful payments, but fulfill the order only once.
       if (orderUpdate.count !== 1) return;
 
+      await lockInventory(
+        tx,
+        paymentAttempt.order.tickets.map((ticket) => ticket.eventId),
+      );
+      const holds = await tx.ticketReservation.findMany({ where: { orderId } });
+      if (paymentAttempt.order.expiresAt) {
+        if (holds.length !== paymentAttempt.order.tickets.length)
+          throw new PaymentError("Missing ticket reservations");
+        for (const ticket of paymentAttempt.order.tickets) {
+          const hold = holds.find(
+            (hold) =>
+              hold.eventId === ticket.eventId &&
+              hold.ticketType === ticket.type,
+          );
+          if (
+            !hold ||
+            hold.quantity !== ticket.quantity ||
+            hold.status !== "PAYMENT_ACTIVE"
+          )
+            throw new PaymentError(
+              "Ticket reservation is not allocated to this payment",
+            );
+        }
+      }
+      await tx.ticketReservation.updateMany({
+        where: { orderId, status: "PAYMENT_ACTIVE" },
+        data: { status: "CONSUMED" },
+      });
+      const otherReservations = await reservedQuantities(
+        tx,
+        paymentAttempt.order.tickets.map((ticket) => ticket.eventId),
+        new Date(),
+      );
+
       for (const ticket of paymentAttempt.order.tickets) {
         if (
           !ticket.eventId ||
@@ -325,7 +257,16 @@ export async function processWebhookEvent(event: Stripe.Event): Promise<void> {
           where: {
             id: ticket.eventId,
             tickets: {
-              some: { type: ticket.type, quantity: { gte: ticket.quantity } },
+              some: {
+                type: ticket.type,
+                quantity: {
+                  gte:
+                    ticket.quantity +
+                    (otherReservations.get(
+                      ticket.eventId + ":" + ticket.type,
+                    ) ?? 0),
+                },
+              },
             },
           },
           data: {
@@ -342,10 +283,14 @@ export async function processWebhookEvent(event: Stripe.Event): Promise<void> {
           },
         });
         if (inventoryUpdate.count !== 1) {
-          throw new PaymentError("Ticket inventory is unavailable for this order");
+          throw new PaymentError(
+            "Ticket inventory is unavailable for this order",
+          );
         }
       }
     } else {
+      if (newPaymentStatus === PaymentStatusEnum.CANCELLED)
+        await releaseCancelledReservations(tx, orderId);
       // An older failed/cancelled attempt must not undo a paid order.
       await tx.order.updateMany({
         where: {
@@ -469,56 +414,28 @@ export async function processRefund(dto: CreateRefundDto): Promise<{
   };
 }
 
-// Expired payments reconciliation
-
-/**
- * Mark all PaymentAttempts that have been PENDING for longer than
- * PAYMENT_EXPIRY_MS as FAILED.  This handles the case where Stripe
- * never sends a webhook (e.g. network issues, user closes tab).
- *
- * Can be called from a cron job or manually.
- */
+// Expire unpaid holds only. A clock cannot determine a Stripe payment's outcome.
+// PAYMENT_ACTIVE holds remain unavailable until Stripe confirms cancellation.
 export async function reconcileExpiredPayments(): Promise<number> {
-  const cutoff = new Date(Date.now() - PAYMENT_EXPIRY_MS);
-
-  const expiredAttempts = await prisma.paymentAttempt.findMany({
-    where: {
-      status: PaymentStatusEnum.PENDING,
-      createdAt: { lt: cutoff },
-    },
-  });
-
-  if (expiredAttempts.length === 0) {
-    return 0;
-  }
-
-  const expiredIds = expiredAttempts.map((a) => a.id);
-  const orderIds = expiredAttempts.map((a) => a.orderId);
-
-  await prisma.$transaction(async (tx) => {
-    // Mark expired attempts as failed
-    await tx.paymentAttempt.updateMany({
-      where: { id: { in: expiredIds } },
-      data: { status: PaymentStatusEnum.FAILED },
+  return inventoryTransaction(async (tx) => {
+    const now = new Date();
+    const expired = await tx.ticketReservation.findMany({
+      where: { status: "HELD", expiresAt: { lte: now } },
     });
-
-    // Update associated orders
-    // Only if the order paymentStatus is still PENDING
-    // (prevents overwriting a webhook that just arrived)
-    await tx.order.updateMany({
+    await lockInventory(
+      tx,
+      expired.map((hold) => hold.eventId),
+    );
+    await tx.ticketReservation.updateMany({
       where: {
-        id: { in: orderIds },
-        paymentStatus: PaymentStatusEnum.PENDING,
+        id: { in: expired.map((hold) => hold.id) },
+        status: "HELD",
+        expiresAt: { lte: now },
       },
-      data: {
-        paymentStatus: PaymentStatusEnum.FAILED,
-        // Revert order status to PAYMENT so the buyer can retry
-        status: OrderStatusEnum.PAYMENT,
-      },
+      data: { status: "RELEASED" },
     });
+    return new Set(expired.map((hold) => hold.orderId)).size;
   });
-
-  return expiredAttempts.length;
 }
 
 // Cancel payment (buyer-initiated cancellation)
@@ -529,7 +446,7 @@ export async function reconcileExpiredPayments(): Promise<number> {
  * 1. Cancels the Stripe PaymentIntent.
  * 2. Updates PaymentAttempt to CANCELLED.
  * 3. Updates Order paymentStatus to CANCELLED.
- * 4. Keeps order status in PAYMENT so the buyer can try again.
+ * 4. Releases inventory only after Stripe confirms cancellation.
  */
 export async function cancelPayment(orderId: string): Promise<void> {
   if (!orderId) {
@@ -539,7 +456,7 @@ export async function cancelPayment(orderId: string): Promise<void> {
   const paymentAttempt = await prisma.paymentAttempt.findFirst({
     where: {
       orderId,
-      status: PaymentStatusEnum.PENDING,
+      status: { in: [PaymentStatusEnum.PENDING, PaymentStatusEnum.FAILED] },
     },
   });
 
@@ -547,26 +464,33 @@ export async function cancelPayment(orderId: string): Promise<void> {
     throw new PaymentError("No active payment to cancel");
   }
 
-  // Cancel in Stripe
-  if (paymentAttempt.paymentIntentId) {
-    try {
-      await stripe.paymentIntents.cancel(paymentAttempt.paymentIntentId);
-    } catch {
-      // Stripe cancel failed — still mark locally so the order
-      // is not left in a stuck state.
-    }
+  // Missing Stripe references are unresolved payments, not safe releases.
+  if (!paymentAttempt.paymentIntentId)
+    throw new PaymentError("Payment must be reconciled before cancellation");
+  try {
+    const cancelled = await stripe.paymentIntents.cancel(
+      paymentAttempt.paymentIntentId,
+    );
+    if (cancelled.status !== "canceled")
+      throw new Error("Cancellation not confirmed");
+  } catch {
+    throw new PaymentError(
+      "Could not confirm cancellation; the reservation remains protected",
+    );
   }
 
-  // Update local state
-  await prisma.$transaction(async (tx) => {
-    await tx.paymentAttempt.update({
-      where: { id: paymentAttempt.id },
-      data: { status: PaymentStatusEnum.CANCELLED },
+  await inventoryTransaction(async (tx) => {
+    await tx.paymentAttempt.updateMany({
+      where: { id: paymentAttempt.id, status: { in: ["PENDING", "FAILED"] } },
+      data: { status: "CANCELLED" },
     });
-
-    await tx.order.update({
-      where: { id: orderId },
-      data: { paymentStatus: PaymentStatusEnum.CANCELLED },
+    await releaseCancelledReservations(tx, orderId);
+    await tx.order.updateMany({
+      where: {
+        id: orderId,
+        paymentStatus: { notIn: ["SUCCEEDED", "REFUNDED"] },
+      },
+      data: { paymentStatus: "CANCELLED" },
     });
   });
 }

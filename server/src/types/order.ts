@@ -41,6 +41,7 @@ export type Order = {
   userId: string;
   createdAt?: Date;
   updatedAt?: Date;
+  expiresAt?: Date | null;
   status: string;
   paymentStatus: PaymentStatus;
   serviceFee: number;

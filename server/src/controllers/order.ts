@@ -9,6 +9,7 @@ import {
 } from "../service/order";
 import { CreateOrderDto } from "../types/order";
 import type { AuthRequest } from "../middleware/auth.middleware";
+import { ReservationError } from "../service/reservation";
 
 const getOrdersHandler = async (_req: Request, res: Response) => {
   try {
@@ -102,6 +103,9 @@ const updateOrderHandler = async (req: Request, res: Response) => {
     }
     res.status(200).json({ success: true, data: order });
   } catch (error) {
+    if (error instanceof ReservationError) {
+      return res.status(409).json({ success: false, message: error.message });
+    }
     console.error("Error updating order:", error);
     res.status(500).json({ success: false, message: "Failed to update order" });
   }
@@ -129,6 +133,9 @@ const deleteOrderHandler = async (req: Request, res: Response) => {
       data: order,
     });
   } catch (error) {
+    if (error instanceof ReservationError) {
+      return res.status(409).json({ success: false, message: error.message });
+    }
     console.error("Error deleting order:", error);
     res.status(500).json({ success: false, message: "Failed to delete order" });
   }

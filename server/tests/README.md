@@ -13,8 +13,9 @@ paths if they are installed elsewhere.
 
 The suite starts its own single-node replica set on a temporary loopback port,
 uses a fresh database in the operating system's temporary directory, and shuts
-it down and removes that directory afterward. It does not read the application's
-`.env` or connect to its database. Missing MongoDB executables fail the tests
+it down and removes that directory afterward. Prisma schema setup and the test
+process receive an explicit temporary database URL, so they never connect to the
+application's database. Missing MongoDB executables fail the tests
 rather than silently skipping database verification.
 
 Webhook requests go through the real Express application and Stripe signature
@@ -25,3 +26,8 @@ transaction rollback across multiple events.
 Transaction conflicts may return HTTP 500 during simultaneous delivery. The
 tests replay those deliveries, as Stripe does, and verify that inventory was
 consumed only once.
+
+Reservation tests also cover concurrent claims for the last ticket, aggregated
+quantities, multi-event rollback, query-time expiry, and stock protected during
+Stripe creation/cancellation failures. Stripe API calls in these tests are
+stubbed; inventory and transaction behavior run against the real replica set.

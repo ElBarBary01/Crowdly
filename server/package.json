@@ -5,6 +5,8 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
+    "db:seed": "prisma db seed",
+    "db:seed:typecheck": "tsc --noEmit --project tsconfig.seed.json",
     "test": "tsx --test tests/*.test.ts",
     "test:typecheck": "tsc --noEmit --project tsconfig.test.json",
     "dev": "tsx watch src/index.ts",

@@ -44,7 +44,7 @@ export const sendVerifyEmail = async ({
   unsubscribeUrl,
 }: { email: string } & VerifyEmailProps) => {
   return await resend.emails.send({
-    from: "Verification <verification@resume.barbary.app>",
+    from: "Verification <onboarding@resend.dev>",
     to: email,
     subject: "Verify your email address",
     react: VerifyEmail({ code, verifyUrl, manageUrl, unsubscribeUrl }),
@@ -57,7 +57,7 @@ export const sendResetPasswordEmail = async ({
   manageUrl,
 }: { email: string } & ResetPasswordProps) => {
   return await resend.emails.send({
-    from: "Password Reset <password-reset@resume.barbary.app>",
+    from: "Password Reset <onboarding@resend.dev>",
     to: email,
     subject: "Reset your password",
     react: ResetPassword({ resetUrl, manageUrl }),
@@ -74,7 +74,7 @@ export const sendTicketConfirmationEmail = async ({
   ticketDetails: orderDetails;
 } & TicketConfirmationProps) => {
   return await resend.emails.send({
-    from: "Ticket Confirmation <tickets@resume.barbary.app>",
+    from: "Ticket Confirmation <onboarding@resend.dev>",
     to: email,
     subject: "Your ticket confirmation",
     react: TicketConfirmation({

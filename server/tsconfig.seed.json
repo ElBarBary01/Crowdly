@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["prisma/**/*.ts"],
+  "compilerOptions": {
+    "noEmit": true
+  }
+}

@@ -1,3 +1,4 @@
+import { withAvailability } from "./reservation";
 import prisma from "../lib/prisma";
 import { Genre, GENRE_METADATA } from "../types/genre";
 import type { Ticket } from "../../generated/prisma/client";
@@ -6,12 +7,12 @@ const FEW_LEFT_THRESHOLD = 50;
 
 function getAvailabilityLabel(
   tickets: Ticket[],
-): "Few Left" | "Sold Out" | null {
+  reservedQuantity: number,
+): "Few Left" | "Sold Out" | "Reserved" | null {
   const totalQuantity = tickets.reduce((sum, t) => sum + t.quantity, 0);
-  const totalSold = tickets.reduce((sum, t) => sum + ((t as any).sold ?? 0), 0);
-  const remaining = totalQuantity - totalSold;
+  const remaining = totalQuantity;
 
-  if (remaining <= 0) return "Sold Out";
+  if (remaining <= 0) return reservedQuantity > 0 ? "Reserved" : "Sold Out";
   if (remaining <= FEW_LEFT_THRESHOLD) return "Few Left";
   return null;
 }
@@ -30,7 +31,13 @@ function toEventCard(event: any) {
       location: event.venue.location,
     },
     genreLabel: primaryGenre ? GENRE_METADATA[primaryGenre].label : null,
-    availabilityLabel: getAvailabilityLabel(event.tickets),
+    availabilityLabel: getAvailabilityLabel(
+      event.tickets,
+      event.reservedQuantity,
+    ),
+    availableQuantity: event.availableQuantity,
+    reservedQuantity: event.reservedQuantity,
+    serverNow: event.serverNow,
     fromPrice: event.tickets.length
       ? Math.min(...event.tickets.map((t: any) => t.price))
       : null,
@@ -61,7 +68,7 @@ export async function getTrendingEvents(limit = 3) {
     include: { venue: true, tickets: true },
   });
 
-  return events.map(toEventCard);
+  return (await withAvailability(events)).map(toEventCard);
 }
 
 export async function getNearByEvents(limit = 3, city?: string) {
@@ -77,7 +84,7 @@ export async function getNearByEvents(limit = 3, city?: string) {
     include: { venue: true, tickets: true },
   });
 
-  return events.map(toEventCard);
+  return (await withAvailability(events)).map(toEventCard);
 }
 
 export async function getGenreCounts() {

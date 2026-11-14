@@ -1,3 +1,4 @@
+import { requireAuth, requireAdmin } from "../middleware/auth.middleware";
 import express from "express";
 import {
   getEventsHandler,
@@ -16,9 +17,9 @@ router.get("/", getEventsHandler);
 router.get("/latest", getLatestEventsHandler);
 router.get("/trending", getTrendingEventsHandler);
 router.get("/:id", getEventByIdHandler);
-router.post("/", createEventHandler);
-router.put("/:id", updateEventHandler);
+router.post("/", requireAuth, requireAdmin, createEventHandler);
+router.put("/:id", requireAuth, requireAdmin, updateEventHandler);
 router.get("/:id/related", getRelatedEventsHandler);
-router.delete("/:id", deleteEventHandler);
+router.delete("/:id", requireAuth, requireAdmin, deleteEventHandler);
 
 export default router;

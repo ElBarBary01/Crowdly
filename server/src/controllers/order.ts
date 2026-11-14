@@ -1,160 +1,106 @@
-import { Request, Response } from "express";
+import type { Response } from "express";
+import type { AuthRequest } from "../middleware/auth.middleware";
 import {
   createOrder,
-  getOrders,
   getOrderById,
-  updateOrder,
   deleteOrder,
   getOrdersByUserId,
 } from "../service/order";
-import { CreateOrderDto } from "../types/order";
-import type { AuthRequest } from "../middleware/auth.middleware";
-
-const getOrdersHandler = async (_req: Request, res: Response) => {
+import { ReservationError } from "../service/reservation";
+import type { Order } from "../../generated/prisma/client";
+import { moneyAmount } from "../service/pricing";
+export function orderView<T extends Order>(order: T) {
+  const serverNow = new Date();
+  const confirmed =
+    order.status === "CONFIRMATION" &&
+    ["SUCCEEDED", "PARTIALLY_REFUNDED"].includes(order.paymentStatus) &&
+    !order.ticketsCancelledAt;
+  const expired =
+    order.status === "EXPIRED" ||
+    (order.status === "TICKET_SELECTION" &&
+      Boolean(order.expiresAt && order.expiresAt <= serverNow));
+  return {
+    ...order,
+    subtotalAmount:
+      order.subtotalAmount ??
+      order.tickets.reduce(
+        (sum, ticket) => sum + moneyAmount(ticket.price) * ticket.quantity,
+        0,
+      ),
+    addOnAmount: order.addOnAmount ?? 0,
+    feeAmount: order.feeAmount ?? moneyAmount(order.serviceFee),
+    discountAmount: order.discountAmount ?? 0,
+    totalAmount: order.totalAmount ?? moneyAmount(order.totalPrice),
+    serverNow,
+    confirmed,
+    expired,
+    ticketsValid: confirmed,
+  };
+}
+function fail(res: Response, error: unknown) {
+  if (error instanceof ReservationError)
+    return res.status(409).json({ success: false, message: error.message });
+  console.error(
+    "Order operation failed",
+    error instanceof Error ? error.message : "Unknown failure",
+  );
+  return res
+    .status(500)
+    .json({ success: false, message: "Order operation failed" });
+}
+export async function getOrdersHandler(req: AuthRequest, res: Response) {
   try {
-    const orders = await getOrders();
-    res.status(200).json({ success: true, count: orders.length, data: orders });
+    const orders = await getOrdersByUserId(req.user!.userId);
+    return res.json({ success: true, data: orders.map(orderView) });
   } catch (error) {
-    console.error("Error fetching orders:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch orders" });
+    return fail(res, error);
   }
-};
-
-const getOrderByIdHandler = async (req: Request, res: Response) => {
+}
+export async function getOrderByIdHandler(req: AuthRequest, res: Response) {
   try {
-    const { id } = req.params;
-    if (typeof id !== "string") {
+    const order = await getOrderById(req.params.id as string);
+    return order
+      ? res.json({ success: true, data: orderView(order) })
+      : res.status(404).json({ message: "Order not found" });
+  } catch (error) {
+    return fail(res, error);
+  }
+}
+export async function createOrderHandler(req: AuthRequest, res: Response) {
+  try {
+    if (typeof req.body?.requestId !== "string")
       return res
         .status(400)
-        .json({ success: false, message: "Valid Order ID is required" });
-    }
-    const order = await getOrderById(id);
-
-    if (!order) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found" });
-    }
-
-    res.status(200).json({ success: true, data: order });
+        .json({ message: "A stable checkout request ID is required" });
+    const order = await createOrder({ ...req.body, userId: req.user!.userId });
+    return res.status(201).json({ success: true, data: orderView(order) });
   } catch (error) {
-    console.error("Error fetching order:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch order" });
-  }
-};
-
-const createOrderHandler = async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.user?.userId;
-
-    if (!userId) {
-      return res
-        .status(401)
-        .json({ success: false, message: "User not authenticated" });
-    }
-
-    const dto: CreateOrderDto = {
-      ...req.body,
-      userId,
-    };
-
-    // Validate required fields
-    if (
-      !dto.tickets ||
-      !Array.isArray(dto.tickets) ||
-      dto.tickets.length === 0
-    ) {
-      return res.status(400).json({
+    return res
+      .status(400)
+      .json({
         success: false,
-        message: "tickets array is required and must not be empty",
+        message: error instanceof Error ? error.message : "Invalid order",
       });
-    }
-
-    const order = await createOrder(dto);
-    res.status(201).json({ success: true, data: order });
-  } catch (error) {
-    console.error("Error creating order:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to create order";
-
-    return res.status(400).json({
-      success: false,
-      message,
-    });
   }
-};
-
-const updateOrderHandler = async (req: Request, res: Response) => {
+}
+export function updateOrderHandler(_req: AuthRequest, res: Response) {
+  return res
+    .status(405)
+    .json({ message: "Use checkout or cancellation to change an order" });
+}
+export async function deleteOrderHandler(req: AuthRequest, res: Response) {
   try {
-    const { id } = req.params;
-    if (typeof id !== "string") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Valid Order ID is required" });
-    }
-
-    const order = await updateOrder(id, req.body);
-
-    if (!order) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found" });
-    }
-    res.status(200).json({ success: true, data: order });
+    await deleteOrder(req.params.id as string);
+    return res.json({ success: true });
   } catch (error) {
-    console.error("Error updating order:", error);
-    res.status(500).json({ success: false, message: "Failed to update order" });
+    return fail(res, error);
   }
-};
-
-const deleteOrderHandler = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    if (typeof id !== "string") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Valid Order ID is required" });
-    }
-    const order = await deleteOrder(id);
-
-    if (!order) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found" });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Order deleted successfully",
-      data: order,
-    });
-  } catch (error) {
-    console.error("Error deleting order:", error);
-    res.status(500).json({ success: false, message: "Failed to delete order" });
-  }
-};
-
-const getOrdersByUserIdHandler = async (req: Request, res: Response) => {
-  try {
-    const { userId } = req.params;
-    if (typeof userId !== "string") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Valid User ID is required" });
-    }
-    const orders = await getOrdersByUserId(userId);
-    res.status(200).json({ success: true, count: orders.length, data: orders });
-  } catch (error) {
-    console.error("Error fetching orders by user:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch orders" });
-  }
-};
-
-export {
-  getOrdersHandler,
-  getOrderByIdHandler,
-  createOrderHandler,
-  updateOrderHandler,
-  deleteOrderHandler,
-  getOrdersByUserIdHandler,
-};
+}
+export async function getOrdersByUserIdHandler(
+  req: AuthRequest,
+  res: Response,
+) {
+  if (req.params.userId !== req.user!.userId)
+    return res.status(403).json({ message: "Order access denied" });
+  return getOrdersHandler(req, res);
+}

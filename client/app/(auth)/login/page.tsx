@@ -25,6 +25,19 @@ export default function LoginPage() {
   const [showVerifyPopup, setShowVerifyPopup] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
 
+  function finishLogin() {
+    const destination = new URLSearchParams(window.location.search).get(
+      "redirect",
+    );
+    const safe =
+      destination?.startsWith("/") &&
+      !destination.startsWith("//") &&
+      !destination.includes("\\")
+        ? destination
+        : "/";
+    router.push(safe);
+  }
+
   function validate() {
     let valid = true;
 
@@ -79,7 +92,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      finishLogin();
     } catch {
       setFormError("Unable to reach the server");
     } finally {
@@ -93,7 +106,7 @@ export default function LoginPage() {
         <VerifyPopup
           email={verificationEmail}
           onClose={() => setShowVerifyPopup(false)}
-          onVerified={() => router.push("/")}
+          onVerified={finishLogin}
         />
       )}
 

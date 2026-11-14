@@ -1,3 +1,4 @@
+import { requireAuth, requireAdmin } from "../middleware/auth.middleware";
 import express from "express";
 import {
   getVenuesHandler,
@@ -11,8 +12,8 @@ const router = express.Router();
 
 router.get("/", getVenuesHandler);
 router.get("/:id", getVenueByIdHandler);
-router.post("/", createVenueHandler);
-router.put("/:id", updateVenueHandler);
-router.delete("/:id", deleteVenueHandler);
+router.post("/", requireAuth, requireAdmin, createVenueHandler);
+router.put("/:id", requireAuth, requireAdmin, updateVenueHandler);
+router.delete("/:id", requireAuth, requireAdmin, deleteVenueHandler);
 
 export default router;

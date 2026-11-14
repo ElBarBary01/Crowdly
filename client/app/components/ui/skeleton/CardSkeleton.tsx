@@ -12,7 +12,7 @@ export function EventCardSkeleton({ count = 1 }: CardSkeletonProps) {
     <>
       {Array.from({ length: count }).map((_, index) => (
         <Card key={index} type="event" className="event-card-skeleton">
-          <CardImage>
+          <CardImage alt="">
             <Skeleton variant="rectangular" width="100%" height="200px" />
           </CardImage>
           <CardBody>
@@ -22,7 +22,14 @@ export function EventCardSkeleton({ count = 1 }: CardSkeletonProps) {
               <Skeleton width="70%" height="16px" />
             </div>
             <Skeleton width="40%" height="16px" className="mt-3" />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: "12px",
+              }}
+            >
               <Skeleton width="60px" height="20px" />
               <Skeleton width="100px" height="32px" variant="rectangular" />
             </div>
@@ -38,7 +45,7 @@ export function ArtistCardSkeleton({ count = 1 }: CardSkeletonProps) {
     <>
       {Array.from({ length: count }).map((_, index) => (
         <Card key={index} type="artist" className="artist-card-skeleton">
-          <CardImage>
+          <CardImage alt="">
             <Skeleton variant="rectangular" width="100%" height="250px" />
           </CardImage>
           <CardBody>
@@ -58,7 +65,13 @@ export function OrderCardSkeleton({ count = 1 }: CardSkeletonProps) {
       {Array.from({ length: count }).map((_, index) => (
         <Card key={index} type="order" className="order-card-skeleton">
           <CardBody>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
               <div style={{ flex: 1 }}>
                 <Skeleton width="100px" height="16px" className="mb-2" />
                 <Skeleton width="80px" height="14px" />

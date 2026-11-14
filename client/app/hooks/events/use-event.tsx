@@ -23,5 +23,6 @@ export const useEvent = (id: string) => {
     },
 
     enabled: !!id,
+    refetchInterval: 10_000,
   });
 };

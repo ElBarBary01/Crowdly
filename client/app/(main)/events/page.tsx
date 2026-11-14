@@ -2,7 +2,7 @@
 
 import EventCard from "../../components/ui/card/EventCard";
 import { EventCardSkeleton } from "../../components/ui/skeleton/CardSkeleton";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./events.module.css";
 import Pagination from "../../components/ui/navigationComponent/pagination";
@@ -217,4 +217,10 @@ const EventsPage = () => {
   );
 };
 
-export default EventsPage;
+export default function EventsRoute() {
+  return (
+    <Suspense fallback={<p>Loading events...</p>}>
+      <EventsPage />
+    </Suspense>
+  );
+}

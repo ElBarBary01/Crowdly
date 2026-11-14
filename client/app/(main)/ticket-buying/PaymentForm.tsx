@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
 import type { StripeCardElementOptions } from "@stripe/stripe-js";
 import Button from "../../components/ui/Button";
@@ -10,59 +10,40 @@ interface PaymentFormProps {
   checkoutTotal: number;
   isProcessing: boolean;
   onSuccess: () => void;
+  onProcessing: () => void;
+  disabled: boolean;
+  billingName: string;
   onError: (error: string) => void;
 }
 
-function readCssVar(name: string, fallback: string) {
-  if (typeof window === "undefined") return fallback;
-  const value = getComputedStyle(document.documentElement)
-    .getPropertyValue(name)
-    .trim();
-  return value || fallback;
-}
+const cardElementOptions: StripeCardElementOptions = {
+  style: {
+    base: {
+      color: "#e5e5e5",
+      fontSize: "14px",
+      "::placeholder": { color: "#8a8a8a" },
+    },
+    invalid: { color: "#c23030" },
+  },
+};
 
 export default function PaymentForm({
   orderId,
   checkoutTotal,
   isProcessing,
   onSuccess,
+  onProcessing,
+  disabled,
+  billingName,
   onError,
 }: PaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [cardElementOptions, setCardElementOptions] =
-    useState<StripeCardElementOptions | null>(null);
-
-  useEffect(() => {
-    // Pull actual theme colors so the Stripe iframe matches your CSS vars
-    const textColor = readCssVar("--color-text", "#e5e5e5");
-    const dimColor = readCssVar("--color-dim", "#8a8a8a");
-    const errorColor = readCssVar("--color-error", "#c23030");
-    const fontSans = readCssVar("--font-sans", "sans-serif");
-
-    setCardElementOptions({
-      style: {
-        base: {
-          color: textColor,
-          fontSize: "14px",
-          lineHeight: "20px",
-          fontFamily: fontSans,
-          "::placeholder": {
-            color: dimColor,
-          },
-        },
-        invalid: {
-          color: errorColor,
-          iconColor: errorColor,
-        },
-      },
-    });
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (disabled || isProcessing || isSubmitting) return;
     if (!stripe || !elements) {
       onError("Stripe not loaded");
       return;
@@ -74,6 +55,7 @@ export default function PaymentForm({
     }
 
     setIsSubmitting(true);
+    onProcessing();
 
     try {
       const paymentResponse = await fetch(
@@ -92,7 +74,15 @@ export default function PaymentForm({
         throw new Error(paymentData.message || "Failed to create payment");
       }
 
-      const { clientSecret } = paymentData.data;
+      const { clientSecret, status, amountMinor } = paymentData.data;
+      if (status === "SUCCEEDED" || status === "PARTIALLY_REFUNDED") {
+        onSuccess();
+        return;
+      }
+      if (!clientSecret || amountMinor !== Math.round(checkoutTotal * 100))
+        throw new Error(
+          "Order pricing changed. Reload your reservation before paying.",
+        );
 
       const cardElement = elements.getElement(CardElement);
 
@@ -104,7 +94,7 @@ export default function PaymentForm({
         payment_method: {
           card: cardElement,
           billing_details: {
-            name: "Customer",
+            name: billingName,
           },
         },
       });
@@ -113,7 +103,9 @@ export default function PaymentForm({
         throw new Error(result.error.message || "Payment failed");
       }
 
-      if (result.paymentIntent?.status === "succeeded") {
+      if (
+        ["succeeded", "processing"].includes(result.paymentIntent?.status ?? "")
+      ) {
         onSuccess();
       } else {
         throw new Error("Payment not completed");
@@ -140,7 +132,9 @@ export default function PaymentForm({
         type="submit"
         size="lg"
         className="ticket-buying__primary-action"
-        disabled={isSubmitting || isProcessing || !stripe || !elements}
+        disabled={
+          disabled || isSubmitting || isProcessing || !stripe || !elements
+        }
       >
         {isSubmitting || isProcessing
           ? "Processing..."

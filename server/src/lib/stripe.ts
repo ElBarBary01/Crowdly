@@ -12,5 +12,6 @@ if (!stripeSecretKey) {
 }
 
 export const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: "2025-04-30.basil" as Stripe.LatestApiVersion,
+  maxNetworkRetries: 2,
+  timeout: 10_000,
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "../../components/ui/card/card";
 import "./verify-email.css";
@@ -9,7 +9,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 type Status = "verifying" | "success" | "error";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -18,11 +18,7 @@ export default function VerifyEmailPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    if (!token) {
-      setStatus("error");
-      setErrorMessage("Missing verification token");
-      return;
-    }
+    if (!token) return;
 
     async function verify() {
       try {
@@ -55,18 +51,19 @@ export default function VerifyEmailPage() {
     verify();
   }, [token, router]);
 
+  const displayedStatus = token ? status : "error";
   return (
     <div className="verify-email-page">
       <Card className="verify-email-card">
         <CardContent className="verify-email-content">
-          {status === "verifying" && (
+          {displayedStatus === "verifying" && (
             <>
               <div className="verify-email-spinner" />
               <h1 className="verify-email-title">Verifying your email...</h1>
             </>
           )}
 
-          {status === "success" && (
+          {displayedStatus === "success" && (
             <>
               <div className="verify-email-icon">✓</div>
               <h1 className="verify-email-title">Email verified!</h1>
@@ -74,13 +71,15 @@ export default function VerifyEmailPage() {
             </>
           )}
 
-          {status === "error" && (
+          {displayedStatus === "error" && (
             <>
               <div className="verify-email-icon verify-email-icon--error">
                 ✕
               </div>
               <h1 className="verify-email-title">Verification failed</h1>
-              <p className="verify-email-text">{errorMessage}</p>
+              <p className="verify-email-text">
+                {token ? errorMessage : "Missing verification token"}
+              </p>
               <a href="/signup" className="verify-email-link">
                 Back to sign up
               </a>
@@ -89,5 +88,13 @@ export default function VerifyEmailPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<p>Verifying email...</p>}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

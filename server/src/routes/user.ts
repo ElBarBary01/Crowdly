@@ -1,3 +1,4 @@
+import { requireAdmin, requireOwnUser } from "../middleware/auth.middleware";
 import express from "express";
 import {
   getUsersHandler,
@@ -9,10 +10,10 @@ import {
 
 const router = express.Router();
 
-router.get("/", getUsersHandler);
-router.get("/:id", getUserByIdHandler);
-router.post("/", createUserHandler);
-router.put("/:id", updateUserHandler);
-router.delete("/:id", deleteUserHandler);
+router.get("/", requireAdmin, getUsersHandler);
+router.get("/:id", requireOwnUser, getUserByIdHandler);
+router.post("/", requireAdmin, createUserHandler);
+router.put("/:id", requireOwnUser, updateUserHandler);
+router.delete("/:id", requireOwnUser, deleteUserHandler);
 
 export default router;
